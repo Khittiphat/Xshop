@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>X Mart - 24/7 Convenience Store</title>
+  <meta name="description" content="X Mart 24/7 Convenience Store: instant 15-minute grocery delivery with zero delivery fee.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app-container" class="app-container">
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="header-content">
+        <div class="brand" id="brand-logo" role="button" tabindex="0">
+          <div class="brand-badge">24/7</div>
+          <div class="brand-text">
+            <span class="brand-name">X MART</span>
+            <span class="brand-tagline">Express Convenience</span>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button id="user-mode-btn" class="icon-btn" title="Toggle Member Mode" aria-label="Member Mode">
+            <span id="user-avatar" class="user-avatar">👤</span>
+            <span id="user-status-text" class="user-status-text">Guest</span>
+          </button>
+          <button id="header-cart-btn" class="icon-btn cart-btn" aria-label="Open Shopping Cart">
+            <span class="cart-icon">🛒</span>
+            <span id="cart-badge" class="cart-badge hidden">0</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Delivery Banner -->
+      <div class="promo-strip">
+        <span class="pulse-dot"></span>
+        <span>⚡ 15-Min Delivery • <strong>Free Shipping (฿0)</strong></span>
+      </div>
+    </header>
+
+    <!-- Main Content Area with Views -->
+    <main class="main-content">
+      <!-- VIEW 1: PRODUCT CATALOG -->
+      <section id="view-catalog" class="view active">
+        <!-- Search & Filter Bar -->
+        <div class="search-bar-container">
+          <div class="search-input-wrapper">
+            <span class="search-icon">🔍</span>
+            <input 
+              type="text" 
+              id="search-input" 
+              placeholder="Search snacks, drinks, instant food..." 
+              autocomplete="off"
+              aria-label="Search products"
+            />
+            <button id="search-clear-btn" class="search-clear-btn hidden" aria-label="Clear search">✕</button>
+          </div>
+        </div>
+
+        <!-- Category Pills (Horizontal Scroll for 320px screens) -->
+        <div class="categories-scroll-wrapper" role="region" aria-label="Product categories">
+          <div id="category-pills" class="category-pills">
+            <button class="cat-pill active" data-category-id="all">
+              <span>All Items</span>
+            </button>
+            <!-- Dynamically populated categories -->
+          </div>
+        </div>
+
+        <!-- Products Status / Counter -->
+        <div class="catalog-meta">
+          <span id="catalog-count-text">Loading catalog...</span>
+          <span id="catalog-filter-badge" class="filter-badge hidden">Filtered</span>
+        </div>
+
+        <!-- Product Grid (1 column on 320px, 2 columns on 375px+) -->
+        <div id="products-grid" class="products-grid" aria-live="polite">
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+        </div>
+      </section>
+
+      <!-- VIEW 2: ORDER TRACKING PAGE -->
+      <section id="view-tracking" class="view hidden">
+        <div class="tracking-header">
+          <h2>Order Tracking</h2>
+          <p class="subtitle">Live status & courier dispatch updates</p>
+        </div>
+
+        <!-- Track by Order ID Input -->
+        <div class="track-lookup-card">
+          <label for="track-order-id-input">Track another order ID:</label>
+          <div class="lookup-input-group">
+            <input type="number" id="track-order-id-input" placeholder="e.g. 1, 2, 3..." min="1">
+            <button id="track-lookup-btn" class="btn btn-secondary">Track</button>
+          </div>
+        </div>
+
+        <!-- Active Tracking Card -->
+        <div id="tracking-card" class="tracking-card hidden">
+          <div class="tracking-card-header">
+            <div>
+              <span class="order-id-label">Order #<span id="track-order-id">--</span></span>
+              <div id="track-order-date" class="order-time">--</div>
+            </div>
+            <div id="track-status-pill" class="status-pill status-pending">PENDING</div>
+          </div>
+
+          <!-- Status Progress Stepper -->
+          <div class="status-stepper">
+            <div class="step" id="step-ordered">
+              <div class="step-icon">📝</div>
+              <span class="step-label">Ordered</span>
+            </div>
+            <div class="step-line" id="line-1"></div>
+            <div class="step" id="step-out">
+              <div class="step-icon">🛵</div>
+              <span class="step-label">On the Way</span>
+            </div>
+            <div class="step-line" id="line-2"></div>
+            <div class="step" id="step-delivered">
+              <div class="step-icon">✅</div>
+              <span class="step-label">Delivered</span>
+            </div>
+          </div>
+
+          <!-- Courier Information Card -->
+          <div class="courier-card" id="courier-card">
+            <div class="courier-avatar">🛵</div>
+            <div class="courier-info">
+              <span class="courier-role">Express Delivery Courier</span>
+              <strong id="track-driver-name" class="courier-name">Driver Name</strong>
+              <div class="courier-contact">
+                <a id="track-driver-phone-link" href="tel:" class="btn-call" aria-label="Call Driver">
+                  📞 <span id="track-driver-phone">+66-8X-XXX-XXXX</span>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Delivery Address & Payment -->
+          <div class="order-meta-box">
+            <div class="meta-row">
+              <span class="meta-label">Customer:</span>
+              <strong id="track-customer-name">--</strong>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">Address:</span>
+              <span id="track-delivery-address">--</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">Payment:</span>
+              <span id="track-payment-method" class="payment-tag">CASH</span>
+            </div>
+          </div>
+
+          <!-- Immutable Order Items Summary -->
+          <div class="immutable-items-box">
+            <div class="immutable-badge">🔒 Immutable Cart Summary</div>
+            <div id="track-items-list" class="track-items-list">
+              <!-- Item rows -->
+            </div>
+            <div class="pricing-summary">
+              <div class="price-row">
+                <span>Subtotal</span>
+                <span id="track-subtotal">$0.00</span>
+              </div>
+              <div class="price-row free-delivery">
+                <span>Express Delivery</span>
+                <span class="free-tag">FREE (฿0)</span>
+              </div>
+              <div class="price-row total-row">
+                <span>Total Amount</span>
+                <strong id="track-total">$0.00</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cancellation Button -->
+          <div class="tracking-actions">
+            <button id="cancel-order-btn" class="btn btn-danger btn-block">
+              ✕ Cancel Order
+            </button>
+            <p id="cancel-note" class="help-text">Cancellation is permitted until the courier marks the order as Delivered.</p>
+          </div>
+
+          <!-- Interactive Driver Simulation Toolbar (For testing/grading) -->
+          <div class="simulation-toolbar">
+            <span class="sim-title">⚙️ Staff / Driver Test Controls</span>
+            <div class="sim-buttons">
+              <button id="sim-out-for-delivery" class="btn btn-sm btn-outline">Set: Out for Delivery</button>
+              <button id="sim-delivered" class="btn btn-sm btn-outline">Set: Delivered</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="tracking-empty" class="empty-state">
+          <div class="empty-icon">📦</div>
+          <h3>No Order Selected</h3>
+          <p>Place an order or look up an Order ID above to track delivery progress in real time.</p>
+          <button class="btn btn-primary" id="track-goto-catalog-btn">Browse Products</button>
+        </div>
+      </section>
+
+      <!-- VIEW 3: MEMBER ORDER HISTORY -->
+      <section id="view-history" class="view hidden">
+        <div class="history-header">
+          <h2>Member Order History</h2>
+          <div class="member-profile-card">
+            <div class="member-avatar">👤</div>
+            <div class="member-details">
+              <strong id="history-member-name">John Doe</strong>
+              <span id="history-member-email">john.doe@example.com</span>
+              <span class="membership-badge">⭐ X Mart Member</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="history-orders-list" class="history-orders-list">
+          <!-- Populated by JS -->
+        </div>
+
+        <div id="history-empty" class="empty-state hidden">
+          <div class="empty-icon">🧾</div>
+          <h3>No Orders Found</h3>
+          <p>You haven't placed any member orders yet.</p>
+          <button class="btn btn-primary" id="history-shop-now-btn">Shop Now</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom Navigation Bar (Optimized for Mobile Thumb Zone) -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-target="catalog" id="nav-catalog-btn">
+        <span class="nav-icon">🏪</span>
+        <span class="nav-label">Shop</span>
+      </button>
+      <button class="nav-item" data-target="tracking" id="nav-tracking-btn">
+        <span class="nav-icon">🛵</span>
+        <span class="nav-label">Track</span>
+      </button>
+      <button class="nav-item" data-target="history" id="nav-history-btn">
+        <span class="nav-icon">📋</span>
+        <span class="nav-label">History</span>
+      </button>
+      <button class="nav-item nav-cart" id="nav-cart-btn" aria-label="Shopping Cart">
+        <div class="nav-cart-badge-wrap">
+          <span class="nav-icon">🛒</span>
+          <span id="nav-cart-badge" class="cart-badge hidden">0</span>
+        </div>
+        <span class="nav-label">Cart</span>
+      </button>
+    </nav>
+
+    <!-- CART & CHECKOUT SLIDE-UP DRAWER -->
+    <div id="cart-drawer-backdrop" class="drawer-backdrop hidden"></div>
+    <div id="cart-drawer" class="cart-drawer">
+      <div class="drawer-header">
+        <div class="drawer-drag-handle"></div>
+        <div class="drawer-title-row">
+          <h3>Your Shopping Cart (<span id="drawer-item-count">0</span>)</h3>
+          <button id="drawer-close-btn" class="icon-btn-close" aria-label="Close cart">✕</button>
+        </div>
+        <div class="free-delivery-callout">
+          🚚 <strong>Free Delivery (฿0)</strong> applied to all orders!
+        </div>
+      </div>
+
+      <div class="drawer-body">
+        <!-- Cart Items List -->
+        <div id="cart-items-container" class="cart-items-container">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Empty Cart Notice -->
+        <div id="cart-empty-state" class="empty-cart-state hidden">
+          <div class="empty-icon">🛒</div>
+          <p>Your cart is empty.</p>
+          <button id="empty-cart-browse-btn" class="btn btn-secondary btn-sm">Add Some Snacks!</button>
+        </div>
+
+        <!-- Checkout Form (Guest or Member) -->
+        <div id="checkout-form-section" class="checkout-form-section">
+          <h4>Delivery Information</h4>
+
+          <!-- User Mode Selector -->
+          <div class="checkout-mode-toggle">
+            <button type="button" id="toggle-guest-mode" class="mode-toggle-btn active">Guest Checkout</button>
+            <button type="button" id="toggle-member-mode" class="mode-toggle-btn">Member (John Doe)</button>
+          </div>
+
+          <form id="checkout-form" class="checkout-form">
+            <div class="form-group">
+              <label for="cust-name">Full Name *</label>
+              <input type="text" id="cust-name" placeholder="Enter recipient name" required minlength="2">
+            </div>
+
+            <div class="form-group">
+              <label for="cust-phone">Phone Number *</label>
+              <input type="tel" id="cust-phone" placeholder="e.g. 0812345678" required minlength="6">
+            </div>
+
+            <div class="form-group">
+              <label for="cust-address">Delivery Address *</label>
+              <textarea id="cust-address" rows="2" placeholder="Building, Soi, Road, Bangkok..." required minlength="5"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Payment Method *</label>
+              <div class="payment-methods-grid">
+                <label class="payment-option">
+                  <input type="radio" name="payment_method" value="CASH" checked>
+                  <span class="payment-card">
+                    <span class="payment-icon">💵</span>
+                    <span class="payment-title">Cash on Delivery</span>
+                    <span class="payment-sub">Pay courier in cash</span>
+                  </span>
+                </label>
+
+                <label class="payment-option">
+                  <input type="radio" name="payment_method" value="QR">
+                  <span class="payment-card">
+                    <span class="payment-icon">📱</span>
+                    <span class="payment-title">PromptPay / QR</span>
+                    <span class="payment-sub">Scan on delivery</span>
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Price Breakdown Summary -->
+            <div class="checkout-summary-box">
+              <div class="summary-line">
+                <span>Items Subtotal</span>
+                <span id="drawer-subtotal">$0.00</span>
+              </div>
+              <div class="summary-line highlight-green">
+                <span>Shipping Fee</span>
+                <span>FREE (฿0)</span>
+              </div>
+              <div class="summary-line grand-total">
+                <span>Total to Pay</span>
+                <strong id="drawer-total">$0.00</strong>
+              </div>
+            </div>
+
+            <button type="submit" id="place-order-btn" class="btn btn-primary btn-block btn-lg">
+              Place Order • <span id="btn-total-amount">$0.00</span>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container" aria-live="assertive"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

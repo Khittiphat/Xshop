@@ -12,8 +12,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Root API Overview
-app.get('/', (req, res) => {
+// Serve Mobile-First Static Frontend
+app.use(express.static('public'));
+
+// API Overview Endpoint
+app.get('/api', (req, res) => {
   res.json({
     name: 'X Mart API Backend',
     version: '1.0.0',
