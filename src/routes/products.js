@@ -20,7 +20,7 @@ router.get('/', (req, res) => {
         p.category_id, 
         c.name AS category_name, 
         p.price, 
-        p.image_url, 
+        p.icon, 
         p.description,
         p.created_at
       FROM products p
@@ -102,7 +102,7 @@ router.get('/:id', (req, res) => {
         p.category_id, 
         c.name AS category_name, 
         p.price, 
-        p.image_url, 
+        p.icon, 
         p.description,
         p.created_at
       FROM products p

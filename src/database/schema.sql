@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS products (
     name TEXT NOT NULL,
     category_id INTEGER NOT NULL,
     price REAL NOT NULL CHECK(price >= 0),
-    image_url TEXT,
+    icon TEXT,
     description TEXT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON UPDATE CASCADE ON DELETE RESTRICT

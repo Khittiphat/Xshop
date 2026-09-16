@@ -30,35 +30,35 @@ export function seedDatabase() {
     const categoryRows = db.prepare('SELECT id, name FROM categories').all();
     const catMap = Object.fromEntries(categoryRows.map(c => [c.name, c.id]));
 
-    // 2. Seed Products (15+ realistic convenience store products)
+    // 2. Seed Products (15+ realistic convenience store products with emoji icons)
     const products = [
       // Snacks
       {
         name: "Lay's Classic Potato Chips 50g",
         category_id: catMap['Snacks'],
         price: 1.50,
-        image_url: 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=500&auto=format&fit=crop&q=60',
+        icon: '🥔',
         description: 'Crispy, golden-fried potato chips lightly seasoned with sea salt.'
       },
       {
         name: 'Pringles Sour Cream & Onion 107g',
         category_id: catMap['Snacks'],
         price: 2.40,
-        image_url: 'https://images.unsplash.com/photo-1527842891421-42eec6e703ea?w=500&auto=format&fit=crop&q=60',
+        icon: '🥫',
         description: 'Iconic stackable potato crisps bursting with savory sour cream and herb flavor.'
       },
       {
         name: 'Oreo Original Chocolate Sandwich Cookies 133g',
         category_id: catMap['Snacks'],
         price: 1.80,
-        image_url: 'https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?w=500&auto=format&fit=crop&q=60',
+        icon: '🍪',
         description: 'Rich cocoa wafers sandwiched around smooth vanilla cream.'
       },
       {
         name: 'Doritos Nacho Cheese Tortilla Chips 140g',
         category_id: catMap['Snacks'],
         price: 2.60,
-        image_url: 'https://images.unsplash.com/photo-1613919113640-25732ec5e61f?w=500&auto=format&fit=crop&q=60',
+        icon: '🧀',
         description: 'Bold, crunchy corn tortilla chips packed with tangy melted nacho cheese.'
       },
 
@@ -67,36 +67,43 @@ export function seedDatabase() {
         name: 'Coca-Cola Original Taste 330ml Can',
         category_id: catMap['Drinks'],
         price: 1.20,
-        image_url: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500&auto=format&fit=crop&q=60',
+        icon: '🥤',
         description: 'The world-famous refreshing carbonated soft drink served ice-cold.'
       },
       {
         name: 'Pokka Japanese Green Tea No Sugar 500ml',
         category_id: catMap['Drinks'],
         price: 1.60,
-        image_url: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500&auto=format&fit=crop&q=60',
+        icon: '🍵',
         description: 'Authentic 100% real brewed Japanese green tea with zero calories and zero sugar.'
       },
       {
         name: 'Red Bull Energy Drink 250ml',
         category_id: catMap['Drinks'],
         price: 2.50,
-        image_url: 'https://images.unsplash.com/photo-1582293041079-7814c2f12063?w=500&auto=format&fit=crop&q=60',
+        icon: '⚡',
         description: 'Vitalizes body and mind with caffeine, taurine, and B-group vitamins.'
       },
       {
         name: 'Evian Natural Mineral Water 500ml',
         category_id: catMap['Drinks'],
         price: 1.90,
-        image_url: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=500&auto=format&fit=crop&q=60',
+        icon: '💧',
         description: 'Naturally pure spring water sourced directly from the French Alps.'
       },
       {
         name: 'Nescafe Gold Iced Latte 240ml Can',
         category_id: catMap['Drinks'],
         price: 1.95,
-        image_url: 'https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=500&auto=format&fit=crop&q=60',
+        icon: '☕',
         description: 'Smooth and milky chilled coffee crafted with premium roasted Arabica beans.'
+      },
+      {
+        name: 'Organic Fresh Whole Milk 1L',
+        category_id: catMap['Drinks'],
+        price: 2.80,
+        icon: null, // Tests fallback colored CSS letter avatar
+        description: 'Fresh pasteurized farm milk rich in calcium and natural proteins.'
       },
 
       // Household essentials
@@ -104,21 +111,21 @@ export function seedDatabase() {
         name: 'Kleenex Ultra Soft Facial Tissues 3-Pack',
         category_id: catMap['Household Essentials'],
         price: 4.20,
-        image_url: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=500&auto=format&fit=crop&q=60',
+        icon: '🧻',
         description: '3-ply gentle and highly absorbent facial tissues for everyday family care.'
       },
       {
         name: 'Scotch-Brite Heavy Duty Scrub Sponge 3-Pack',
         category_id: catMap['Household Essentials'],
         price: 3.50,
-        image_url: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?w=500&auto=format&fit=crop&q=60',
+        icon: '🧽',
         description: 'Tough scourer pad combined with high-foam sponge for easy dishwashing.'
       },
       {
         name: 'Clorox Disinfecting Wipes Fresh Scent 35-Count',
         category_id: catMap['Household Essentials'],
         price: 3.90,
-        image_url: 'https://images.unsplash.com/photo-1584483766114-2cea6facdf57?w=500&auto=format&fit=crop&q=60',
+        icon: '🧼',
         description: 'Multi-surface sanitizing wipes killing 99.9% of viruses and bacteria.'
       },
 
@@ -127,21 +134,21 @@ export function seedDatabase() {
         name: 'Nongshim Shin Ramyun Gourmet Spicy 120g',
         category_id: catMap['Instant Foods & Ready Meals'],
         price: 1.75,
-        image_url: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500&auto=format&fit=crop&q=60',
+        icon: '🍜',
         description: 'Famous spicy Korean instant ramen featuring chewy noodles and a rich beef broth.'
       },
       {
         name: 'Nissin Cup Noodles Seafood 75g',
         category_id: catMap['Instant Foods & Ready Meals'],
         price: 1.65,
-        image_url: 'https://images.unsplash.com/photo-1612927601601-6638404737ce?w=500&auto=format&fit=crop&q=60',
+        icon: '🍲',
         description: 'Classic quick meal filled with calamari, crab stick, egg, and cabbage in savory broth.'
       },
       {
         name: 'CP Teriyaki Chicken with Rice 250g',
         category_id: catMap['Instant Foods & Ready Meals'],
         price: 4.50,
-        image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop&q=60',
+        icon: '🍗',
         description: 'Microwaveable ready meal with tender grilled chicken glazed in sweet teriyaki sauce.'
       },
 
@@ -150,20 +157,25 @@ export function seedDatabase() {
         name: 'Colgate Total Clean Mint Toothpaste 100g',
         category_id: catMap['Personal Care'],
         price: 2.90,
-        image_url: 'https://images.unsplash.com/photo-1559599101-f09722fb4948?w=500&auto=format&fit=crop&q=60',
+        icon: '🪥',
         description: '12-hour antibacterial protection for teeth, tongue, cheeks, and gums.'
       }
     ];
 
     const insertProduct = db.prepare(`
-      INSERT INTO products (name, category_id, price, image_url, description)
-      VALUES (@name, @category_id, @price, @image_url, @description)
+      INSERT INTO products (name, category_id, price, icon, description)
+      VALUES (@name, @category_id, @price, @icon, @description)
     `);
 
-    // Check existing products count to prevent duplicate accumulation
-    const existingCount = db.prepare('SELECT COUNT(*) as count FROM products').get().count;
-    if (existingCount === 0) {
-      for (const prod of products) {
+    const updateProduct = db.prepare(`
+      UPDATE products 
+      SET icon = @icon, price = @price, description = @description, category_id = @category_id
+      WHERE name = @name
+    `);
+
+    for (const prod of products) {
+      const res = updateProduct.run(prod);
+      if (res.changes === 0) {
         insertProduct.run(prod);
       }
     }

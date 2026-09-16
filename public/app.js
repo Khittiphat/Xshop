@@ -351,17 +351,51 @@ async function loadProducts() {
   }
 }
 
+// =========================================================
+// Product Icon & Fallback Colored Box Rendering
+// =========================================================
+const FALLBACK_PALETTE = [
+  '#059669', // Emerald
+  '#2563EB', // Blue
+  '#D97706', // Amber
+  '#7C3AED', // Violet
+  '#DC2626', // Red
+  '#0D9488', // Teal
+  '#DB2777', // Pink
+  '#4F46E5'  // Indigo
+];
+
+function getAvatarColor(name) {
+  if (!name) return FALLBACK_PALETTE[0];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % FALLBACK_PALETTE.length;
+  return FALLBACK_PALETTE[index];
+}
+
+function renderProductIconHtml(product, sizeClass = '') {
+  if (product.icon && String(product.icon).trim()) {
+    return `<div class="product-icon-box ${sizeClass}" aria-hidden="true">${escapeHtml(product.icon)}</div>`;
+  }
+  // Fallback to a colored CSS box with the first letter of the product name
+  const firstLetter = (product.name && product.name.trim().charAt(0).toUpperCase()) || 'X';
+  const bgColor = getAvatarColor(product.name);
+  return `<div class="product-icon-box fallback-avatar ${sizeClass}" style="background-color: ${bgColor};" aria-hidden="true">${escapeHtml(firstLetter)}</div>`;
+}
+
 function renderProductsGrid() {
   const count = state.products.length;
-  elements.catalogCountText.textContent = `${count} product${count === 1 ? '' : 's'} available`;
+  elements.catalogCountText.textContent = `${count} item${count === 1 ? '' : 's'} available`;
   elements.catalogFilterBadge.classList.toggle('hidden', state.currentCategoryId === 'all' && !state.searchQuery);
 
   if (count === 0) {
     elements.productsGrid.innerHTML = `
-      <div class="empty-state" style="grid-column: 1 / -1;">
+      <div class="empty-state">
         <div class="empty-icon">🔍</div>
-        <h3>No matching products</h3>
-        <p>Try searching for something else like "tea", "chips", or "cookies".</p>
+        <h3>No matching items</h3>
+        <p>Try searching for something else like "tea", "chips", or "ramen".</p>
       </div>
     `;
     return;
@@ -370,35 +404,37 @@ function renderProductsGrid() {
   elements.productsGrid.innerHTML = '';
 
   state.products.forEach(prod => {
-    const card = document.createElement('article');
-    card.className = 'product-card';
-    card.id = `product-card-${prod.id}`;
+    const itemRow = document.createElement('article');
+    itemRow.className = 'product-list-row';
+    itemRow.id = `product-row-${prod.id}`;
 
-    const imageUrl = prod.image_url || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&auto=format&fit=crop&q=60';
+    const iconHtml = renderProductIconHtml(prod);
 
-    card.innerHTML = `
-      <div class="product-image-wrap">
-        <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(prod.name)}" class="product-image" loading="lazy">
-        <span class="product-category-tag">${escapeHtml(prod.category_name)}</span>
+    itemRow.innerHTML = `
+      <div class="product-icon-wrap">
+        ${iconHtml}
       </div>
-      <div class="product-details">
-        <h3 class="product-title" title="${escapeHtml(prod.name)}">${escapeHtml(prod.name)}</h3>
-        <p class="product-desc">${escapeHtml(prod.description || '')}</p>
-        <div class="product-bottom-row">
-          <div class="product-price">$${prod.price.toFixed(2)}</div>
-          <button class="btn-add-cart" data-id="${prod.id}">
-            + Add
-          </button>
+      <div class="product-info-col">
+        <h3 class="product-row-title" title="${escapeHtml(prod.name)}">${escapeHtml(prod.name)}</h3>
+        <div class="product-row-sub">
+          <span class="product-cat-pill">${escapeHtml(prod.category_name)}</span>
+          ${prod.description ? `<span class="product-desc-snippet">${escapeHtml(prod.description)}</span>` : ''}
         </div>
+      </div>
+      <div class="product-action-col">
+        <span class="product-row-price">$${prod.price.toFixed(2)}</span>
+        <button class="btn-add-quick" data-id="${prod.id}" aria-label="Add ${escapeHtml(prod.name)} to cart">
+          + Add
+        </button>
       </div>
     `;
 
-    const addBtn = card.querySelector('.btn-add-cart');
+    const addBtn = itemRow.querySelector('.btn-add-quick');
     addBtn.addEventListener('click', () => {
       addToCart(prod);
     });
 
-    elements.productsGrid.appendChild(card);
+    elements.productsGrid.appendChild(itemRow);
   });
 }
 
@@ -485,9 +521,12 @@ function renderDrawerCartItems() {
     const row = document.createElement('div');
     row.className = 'cart-item-row';
     const lineTotal = (item.product.price * item.quantity).toFixed(2);
+    const iconHtml = renderProductIconHtml(item.product, 'icon-sm');
 
     row.innerHTML = `
-      <img src="${escapeHtml(item.product.image_url)}" alt="" class="cart-item-img">
+      <div class="cart-item-icon-wrap">
+        ${iconHtml}
+      </div>
       <div class="cart-item-info">
         <div class="cart-item-title">${escapeHtml(item.product.name)}</div>
         <div class="cart-item-unit-price">$${item.product.price.toFixed(2)} each</div>
