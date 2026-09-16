@@ -422,7 +422,7 @@ function renderProductsGrid() {
         </div>
       </div>
       <div class="product-action-col">
-        <span class="product-row-price">$${prod.price.toFixed(2)}</span>
+        <span class="product-row-price">฿${prod.price.toFixed(2)}</span>
         <button class="btn-add-quick" data-id="${prod.id}" aria-label="Add ${escapeHtml(prod.name)} to cart">
           + Add
         </button>
@@ -496,7 +496,7 @@ function updateCartUI() {
   elements.navCartBadge.classList.toggle('hidden', !hasItems);
 
   // Update Drawer Totals (Free Shipping 0 THB)
-  const formattedSubtotal = `$${subtotal.toFixed(2)}`;
+  const formattedSubtotal = `฿${subtotal.toFixed(2)}`;
   elements.drawerSubtotal.textContent = formattedSubtotal;
   elements.drawerTotal.textContent = formattedSubtotal;
   elements.btnTotalAmount.textContent = formattedSubtotal;
@@ -529,14 +529,14 @@ function renderDrawerCartItems() {
       </div>
       <div class="cart-item-info">
         <div class="cart-item-title">${escapeHtml(item.product.name)}</div>
-        <div class="cart-item-unit-price">$${item.product.price.toFixed(2)} each</div>
+        <div class="cart-item-unit-price">฿${item.product.price.toFixed(2)} each</div>
       </div>
       <div class="cart-item-controls">
         <button class="btn-qty btn-minus" data-id="${item.product.id}" aria-label="Decrease quantity">−</button>
         <span class="cart-item-qty">${item.quantity}</span>
         <button class="btn-qty btn-plus" data-id="${item.product.id}" aria-label="Increase quantity">+</button>
       </div>
-      <div class="cart-item-subtotal">$${lineTotal}</div>
+      <div class="cart-item-subtotal">฿${lineTotal}</div>
       <button class="btn-remove-item" data-id="${item.product.id}" aria-label="Remove item">✕</button>
     `;
 
@@ -551,12 +551,14 @@ function renderDrawerCartItems() {
 function openCartDrawer() {
   updateCartUI();
   elements.cartDrawer.classList.add('open');
+  elements.drawerBackdrop.classList.add('active');
   elements.drawerBackdrop.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
 
 function closeCartDrawer() {
   elements.cartDrawer.classList.remove('open');
+  elements.drawerBackdrop.classList.remove('active');
   elements.drawerBackdrop.classList.add('hidden');
   document.body.style.overflow = '';
 }
@@ -627,7 +629,7 @@ async function handleCheckoutSubmit(e) {
     showToast('Network error during checkout.', 'error');
   } finally {
     submitBtn.disabled = false;
-    submitBtn.innerHTML = `Place Order • <span id="btn-total-amount">$0.00</span>`;
+    submitBtn.innerHTML = `Place Order • <span id="btn-total-amount">฿0.00</span>`;
     updateCartUI();
   }
 }
@@ -712,15 +714,15 @@ function renderTrackingDetails(order) {
       row.innerHTML = `
         <span class="track-item-name">${escapeHtml(item.product_name)}</span>
         <span class="track-item-qty">x${item.quantity}</span>
-        <span class="track-item-price">$${Number(item.subtotal || (item.unit_price * item.quantity)).toFixed(2)}</span>
+        <span class="track-item-price">฿${Number(item.subtotal || (item.unit_price * item.quantity)).toFixed(2)}</span>
       `;
       elements.trackItemsList.appendChild(row);
     });
   }
 
   const total = Number(order.total_amount || (order.pricing && order.pricing.total_amount) || 0).toFixed(2);
-  elements.trackSubtotal.textContent = `$${total}`;
-  elements.trackTotal.textContent = `$${total}`;
+  elements.trackSubtotal.textContent = `฿${total}`;
+  elements.trackTotal.textContent = `฿${total}`;
 }
 
 async function handleCancelOrder() {
@@ -829,7 +831,7 @@ function renderHistoryList(orders) {
       </div>
       <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--border); padding-top: 6px; margin-top: 6px;">
         <span style="font-size: 0.75rem; color: var(--text-muted);">${order.payment_method} • Free Delivery</span>
-        <span class="history-order-total">$${Number(order.total_amount).toFixed(2)}</span>
+        <span class="history-order-total">฿${Number(order.total_amount).toFixed(2)}</span>
       </div>
     `;
 

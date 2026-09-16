@@ -1,6 +1,6 @@
 /* =========================================================
-   X Mart Mobile-First CSS Design System
-   Target Viewport: 320px Compact Mobile Screens & Up
+   X Mart Mobile-First App Design System
+   Optimized for 320px Viewports & Touch Devices
    ========================================================= */
 
 :root {
@@ -12,7 +12,6 @@
   --accent-light: #FEF3C7;
   --danger: #EF4444;
   --danger-light: #FEE2E2;
-  --success: #10B981;
   --surface: #FFFFFF;
   --bg-app: #F8FAFC;
   --text-main: #0F172A;
@@ -21,14 +20,15 @@
   --border: #E2E8F0;
   --border-focus: #10B981;
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
-  --shadow-drawer: 0 -10px 25px -5px rgba(15, 23, 42, 0.18);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 10px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 12px 24px -4px rgba(15, 23, 42, 0.15);
+  --shadow-drawer: 0 -12px 32px rgba(15, 23, 42, 0.22);
 
-  --radius-sm: 6px;
+  --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
+  --radius-xl: 20px;
   --radius-full: 9999px;
 
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -45,13 +45,14 @@ html, body {
   width: 100%;
   min-height: 100%;
   background-color: #E2E8F0;
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-family: 'Plus Jakarta Sans', 'Prompt', system-ui, -apple-system, sans-serif;
   color: var(--text-main);
   line-height: 1.4;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Constrain mobile app viewport container (max 480px on desktop, 100% on mobile) */
+/* Constrained Mobile Container (Max 480px on desktop) */
 .app-container {
   width: 100%;
   max-width: 480px;
@@ -61,18 +62,20 @@ html, body {
   display: flex;
   flex-direction: column;
   position: relative;
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 0 35px rgba(15, 23, 42, 0.12);
+  overflow-x: hidden;
 }
 
 /* =========================================================
-   Header & Brand Strip
+   Top App Bar
    ========================================================= */
 .app-header {
   position: sticky;
   top: 0;
   z-index: 40;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
 }
 
@@ -89,6 +92,7 @@ html, body {
   align-items: center;
   gap: 8px;
   cursor: pointer;
+  user-select: none;
 }
 
 .brand-badge {
@@ -99,7 +103,7 @@ html, body {
   padding: 4px 6px;
   border-radius: var(--radius-sm);
   letter-spacing: 0.5px;
-  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.3);
+  box-shadow: 0 2px 5px rgba(5, 150, 105, 0.3);
 }
 
 .brand-text {
@@ -118,7 +122,7 @@ html, body {
 .brand-tagline {
   font-size: 0.65rem;
   color: var(--primary);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .header-actions {
@@ -127,7 +131,7 @@ html, body {
   gap: 6px;
 }
 
-.icon-btn {
+.header-pill-btn {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-full);
@@ -136,24 +140,37 @@ html, body {
   justify-content: center;
   gap: 4px;
   padding: 6px 10px;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.78rem;
+  font-weight: 700;
   color: var(--text-main);
   cursor: pointer;
   transition: all 0.2s ease;
   min-height: 38px;
 }
 
-.icon-btn:active {
-  transform: scale(0.96);
+.header-pill-btn:active {
   background: var(--primary-light);
+  transform: scale(0.96);
 }
 
-.cart-btn {
+.cart-trigger-btn {
   position: relative;
   width: 40px;
   height: 40px;
-  padding: 0;
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cart-trigger-btn:active {
+  transform: scale(0.94);
+  background: var(--primary-light);
 }
 
 .cart-badge {
@@ -177,7 +194,7 @@ html, body {
 
 @keyframes badgePop {
   0% { transform: scale(0); }
-  70% { transform: scale(1.2); }
+  80% { transform: scale(1.2); }
   100% { transform: scale(1); }
 }
 
@@ -190,7 +207,7 @@ html, body {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .pulse-dot {
@@ -198,20 +215,20 @@ html, body {
   height: 6px;
   border-radius: var(--radius-full);
   background-color: #34D399;
-  animation: pulse 1.5s infinite;
+  animation: pulse 1.6s infinite;
 }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(1.3); }
+  50% { opacity: 0.3; transform: scale(1.3); }
 }
 
 /* =========================================================
-   Main Views Container
+   Main Views
    ========================================================= */
 .main-content {
   flex: 1;
-  padding-bottom: calc(75px + var(--safe-bottom));
+  padding-bottom: calc(72px + var(--safe-bottom));
 }
 
 .view {
@@ -222,28 +239,43 @@ html, body {
   display: none !important;
 }
 
+.page-title-row {
+  padding: 16px 14px 8px;
+}
+
+.page-title-row h2 {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.3px;
+}
+
+.subtitle {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
 /* =========================================================
-   View 1: Product Catalog
+   View 1: Product Catalog & POS List View
    ========================================================= */
 .search-bar-container {
   padding: 10px 12px 6px;
 }
 
 .search-input-wrapper {
-  position: relative;
   display: flex;
   align-items: center;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
   border-radius: var(--radius-full);
   padding: 0 12px;
   box-shadow: var(--shadow-sm);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: all 0.2s ease;
 }
 
 .search-input-wrapper:focus-within {
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
 }
 
 .search-icon {
@@ -258,7 +290,7 @@ html, body {
   outline: none;
   background: transparent;
   padding: 10px 0;
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   font-family: inherit;
   color: var(--text-main);
 }
@@ -267,16 +299,16 @@ html, body {
   background: none;
   border: none;
   color: var(--text-muted);
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   padding: 4px;
   cursor: pointer;
 }
 
-/* Category Pills (Touch-friendly horizontal scrolling) */
+/* Horizontal Scrollable Category Pills */
 .categories-scroll-wrapper {
   overflow-x: auto;
   white-space: nowrap;
-  padding: 6px 12px 10px;
+  padding: 6px 12px 8px;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
@@ -297,14 +329,14 @@ html, body {
   padding: 7px 14px;
   border-radius: var(--radius-full);
   font-size: 0.78rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s ease;
   min-height: 36px;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  box-shadow: var(--shadow-sm);
 }
 
 .cat-pill.active {
@@ -318,10 +350,10 @@ html, body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 2px 14px 8px;
+  padding: 4px 14px 8px;
   font-size: 0.75rem;
   color: var(--text-muted);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .filter-badge {
@@ -333,19 +365,19 @@ html, body {
   font-weight: 700;
 }
 
-/* Products List - Compact Text-and-Icon Grocery List (POS Style) */
-.products-grid {
+/* Compact POS-Style Grocery List */
+.products-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 0 10px 20px;
+  padding: 0 10px 16px;
 }
 
 .product-list-row {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 7px 10px;
+  padding: 8px 10px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -359,29 +391,28 @@ html, body {
   border-color: var(--primary);
 }
 
-/* Category Emoji / Avatar Box */
 .product-icon-wrap, .cart-item-icon-wrap {
   flex-shrink: 0;
 }
 
 .product-icon-box {
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   border-radius: 10px;
   background: #F1F5F9;
   border: 1px solid #E2E8F0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.45rem;
+  font-size: 1.4rem;
   line-height: 1;
   user-select: none;
 }
 
 .product-icon-box.icon-sm {
-  width: 36px;
-  height: 36px;
-  font-size: 1.2rem;
+  width: 34px;
+  height: 34px;
+  font-size: 1.15rem;
   border-radius: 8px;
 }
 
@@ -389,17 +420,12 @@ html, body {
 .product-icon-box.fallback-avatar {
   color: #FFFFFF;
   font-weight: 800;
-  font-size: 1.15rem;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  font-size: 1.1rem;
   border: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.product-icon-box.fallback-avatar.icon-sm {
-  font-size: 0.95rem;
-}
-
-/* Product Info Column */
 .product-info-col {
   flex: 1;
   min-width: 0;
@@ -413,7 +439,7 @@ html, body {
   font-size: 0.82rem;
   font-weight: 700;
   color: var(--text-main);
-  line-height: 1.2;
+  line-height: 1.25;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -428,7 +454,7 @@ html, body {
 
 .product-cat-pill {
   font-size: 0.65rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--primary-dark);
   background: var(--primary-light);
   padding: 1px 6px;
@@ -445,7 +471,6 @@ html, body {
   text-overflow: ellipsis;
 }
 
-/* Product Action Column (Price + Button) */
 .product-action-col {
   display: flex;
   align-items: center;
@@ -454,10 +479,10 @@ html, body {
 }
 
 .product-row-price {
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   font-weight: 800;
   color: var(--primary-dark);
-  min-width: 44px;
+  min-width: 46px;
   text-align: right;
 }
 
@@ -466,24 +491,25 @@ html, body {
   color: white;
   border: none;
   border-radius: var(--radius-sm);
-  padding: 6px 10px;
+  padding: 7px 11px;
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
   min-height: 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   transition: all 0.15s ease;
-  box-shadow: 0 1px 3px rgba(5, 150, 105, 0.25);
+  box-shadow: 0 1px 3px rgba(5, 150, 105, 0.3);
   white-space: nowrap;
 }
 
 .btn-add-quick:active {
   background: var(--primary-hover);
   transform: scale(0.95);
-/* Skeleton Loading for compact list */
-.skeleton-card, .skeleton-row {
+}
+
+.skeleton-row {
   height: 52px;
   background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
   background-size: 200% 100%;
@@ -500,21 +526,6 @@ html, body {
 /* =========================================================
    View 2: Order Tracking
    ========================================================= */
-.tracking-header, .history-header {
-  padding: 16px 14px 10px;
-}
-
-.tracking-header h2, .history-header h2 {
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: var(--text-main);
-}
-
-.subtitle {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-}
-
 .track-lookup-card {
   margin: 0 12px 14px;
   padding: 12px;
@@ -527,7 +538,7 @@ html, body {
 .track-lookup-card label {
   display: block;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-muted);
   margin-bottom: 6px;
 }
@@ -540,10 +551,15 @@ html, body {
 .lookup-input-group input {
   flex: 1;
   padding: 8px 12px;
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
   font-size: 0.85rem;
   font-family: inherit;
+}
+
+.lookup-input-group input:focus {
+  outline: none;
+  border-color: var(--primary);
 }
 
 .tracking-card {
@@ -559,8 +575,8 @@ html, body {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 14px;
-  padding-bottom: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
   border-bottom: 1px dashed var(--border);
 }
 
@@ -584,16 +600,16 @@ html, body {
 }
 
 .status-pending { background: #FEF3C7; color: #92400E; }
-.status-out { background: #E0E7FF; color: #3730A3; }
+.status-out-for-delivery { background: #E0E7FF; color: #3730A3; }
 .status-delivered { background: #D1FAE5; color: #065F46; }
 .status-cancelled { background: #FEE2E2; color: #991B1B; }
 
-/* Stepper Component */
+/* Status Stepper */
 .status-stepper {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: 16px 4px 18px;
+  margin: 14px 4px 16px;
 }
 
 .step {
@@ -636,14 +652,14 @@ html, body {
   flex: 1;
   height: 3px;
   background: var(--border);
-  margin: 0 6px 16px;
+  margin: 0 6px 14px;
 }
 
 .step-line.active {
   background: var(--primary);
 }
 
-/* Courier Card */
+/* Courier Card with Direct Call Button */
 .courier-card {
   display: flex;
   align-items: center;
@@ -675,7 +691,7 @@ html, body {
   font-size: 0.65rem;
   color: var(--text-muted);
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .courier-name {
@@ -691,23 +707,23 @@ html, body {
 .btn-call {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  background: #059669;
+  gap: 6px;
+  background: var(--primary);
   color: white;
   text-decoration: none;
   font-size: 0.78rem;
   font-weight: 700;
-  padding: 5px 10px;
+  padding: 6px 12px;
   border-radius: var(--radius-sm);
   transition: background-color 0.2s;
-  min-height: 32px;
+  min-height: 34px;
 }
 
 .btn-call:active {
-  background: #047857;
+  background: var(--primary-hover);
 }
 
-/* Meta & Items Breakdown */
+/* Order Meta */
 .order-meta-box {
   background: #F8FAFC;
   padding: 10px 12px;
@@ -736,6 +752,7 @@ html, body {
   font-size: 0.7rem;
 }
 
+/* Immutable Cart Summary */
 .immutable-items-box {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -779,7 +796,7 @@ html, body {
 }
 
 .track-item-price {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .pricing-summary {
@@ -815,7 +832,7 @@ html, body {
 }
 
 .help-text {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
   text-align: center;
   margin-top: 6px;
@@ -921,7 +938,6 @@ html, body {
   color: var(--primary-dark);
 }
 
-/* Empty State */
 .empty-state {
   text-align: center;
   padding: 40px 20px;
@@ -933,8 +949,8 @@ html, body {
   opacity: 0.6;
 }
 
-.empty-state h3 {
-  font-size: 1.1rem;
+.empty-state h3, .empty-state h4 {
+  font-size: 1.05rem;
   font-weight: 700;
   margin-bottom: 6px;
 }
@@ -946,7 +962,7 @@ html, body {
 }
 
 /* =========================================================
-   Bottom Navigation Bar (Thumb Zone)
+   Sticky Bottom Navigation Bar
    ========================================================= */
 .bottom-nav {
   position: fixed;
@@ -955,16 +971,17 @@ html, body {
   transform: translateX(-50%);
   width: 100%;
   max-width: 480px;
-  height: calc(60px + var(--safe-bottom));
-  background: rgba(255, 255, 255, 0.95);
+  height: calc(58px + var(--safe-bottom));
+  background: rgba(255, 255, 255, 0.97);
   backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-around;
   padding-bottom: var(--safe-bottom);
-  z-index: 50;
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.04);
+  z-index: 500;
+  box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.05);
 }
 
 .nav-item {
@@ -977,8 +994,8 @@ html, body {
   color: var(--text-muted);
   cursor: pointer;
   width: 25%;
-  height: 50px;
-  transition: all 0.2s ease;
+  height: 52px;
+  transition: color 0.15s ease;
 }
 
 .nav-item.active {
@@ -1002,22 +1019,26 @@ html, body {
 }
 
 /* =========================================================
-   Cart & Checkout Slide-Up Drawer
+   MODAL / BOTTOM SHEET CART & CHECKOUT DRAWER
+   Strictly hidden unless triggered by the user
    ========================================================= */
 .drawer-backdrop {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(4px);
-  z-index: 100;
-  transition: opacity 0.3s ease;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 998;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
-.drawer-backdrop.hidden {
-  display: none !important;
+.drawer-backdrop.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .cart-drawer {
@@ -1027,28 +1048,35 @@ html, body {
   transform: translate(-50%, 100%);
   width: 100%;
   max-width: 480px;
-  max-height: 88vh;
-  background: var(--surface);
-  border-top-left-radius: var(--radius-lg);
-  border-top-right-radius: var(--radius-lg);
-  z-index: 110;
+  max-height: 86vh;
+  background: #FFFFFF;
+  border-top-left-radius: var(--radius-xl);
+  border-top-right-radius: var(--radius-xl);
+  z-index: 999;
   display: flex;
   flex-direction: column;
   box-shadow: var(--shadow-drawer);
-  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  visibility: hidden;
+  pointer-events: none;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s;
 }
 
 .cart-drawer.open {
   transform: translate(-50%, 0);
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .drawer-header {
   padding: 10px 16px;
   border-bottom: 1px solid var(--border);
+  background: #FFFFFF;
+  border-top-left-radius: var(--radius-xl);
+  border-top-right-radius: var(--radius-xl);
 }
 
 .drawer-drag-handle {
-  width: 36px;
+  width: 38px;
   height: 4px;
   background: #CBD5E1;
   border-radius: var(--radius-full);
@@ -1062,27 +1090,36 @@ html, body {
 }
 
 .drawer-title-row h3 {
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 800;
+  color: var(--text-main);
 }
 
-.icon-btn-close {
+.drawer-close-btn {
   background: #F1F5F9;
   border: none;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--radius-full);
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 700;
   color: var(--text-muted);
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.drawer-close-btn:active {
+  background: #E2E8F0;
 }
 
 .free-delivery-callout {
   background: var(--primary-light);
   color: var(--primary-dark);
   font-size: 0.72rem;
-  padding: 5px 10px;
+  padding: 6px 10px;
   border-radius: var(--radius-sm);
   margin-top: 8px;
   font-weight: 600;
@@ -1094,29 +1131,22 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  -webkit-overflow-scrolling: touch;
 }
 
-/* Cart Items */
+/* Cart Items Container */
 .cart-items-container {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .cart-item-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   padding: 8px 0;
   border-bottom: 1px solid #F1F5F9;
-}
-
-.cart-item-img {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-sm);
-  object-fit: cover;
-  background: #F1F5F9;
 }
 
 .cart-item-info {
@@ -1125,7 +1155,7 @@ html, body {
 }
 
 .cart-item-title {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
@@ -1140,7 +1170,7 @@ html, body {
 .cart-item-controls {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .btn-qty {
@@ -1179,7 +1209,7 @@ html, body {
   background: none;
   border: none;
   color: var(--text-light);
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   padding: 4px;
   cursor: pointer;
 }
@@ -1188,18 +1218,19 @@ html, body {
   color: var(--danger);
 }
 
-/* Checkout Form */
-.checkout-form-section h4 {
-  font-size: 0.88rem;
+/* Checkout Form Section */
+.section-heading {
+  font-size: 0.9rem;
   font-weight: 800;
   margin-bottom: 8px;
+  color: var(--text-main);
 }
 
 .checkout-mode-toggle {
   display: flex;
   background: #F1F5F9;
   border-radius: var(--radius-sm);
-  padding: 2px;
+  padding: 3px;
   margin-bottom: 12px;
 }
 
@@ -1207,11 +1238,11 @@ html, body {
   flex: 1;
   background: none;
   border: none;
-  padding: 6px;
-  font-size: 0.72rem;
+  padding: 7px;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--text-muted);
-  border-radius: var(--radius-sm);
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -1225,7 +1256,7 @@ html, body {
 .checkout-form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .form-group {
@@ -1235,35 +1266,53 @@ html, body {
 }
 
 .form-group label {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  color: var(--text-muted);
+  color: var(--text-main);
 }
 
+/* Styled Touch-Friendly Inputs */
 .form-group input, .form-group textarea {
   width: 100%;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
-  font-size: 0.82rem;
+  font-size: 15px; /* min 15px prevents iOS safari zoom */
   font-family: inherit;
   color: var(--text-main);
+  background: #FFFFFF;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  min-height: 44px;
+}
+
+.form-group textarea {
+  min-height: 56px;
+  resize: vertical;
 }
 
 .form-group input:focus, .form-group textarea:focus {
   outline: none;
-  border-color: var(--border-focus);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.18);
 }
 
-/* Payment Method Selection */
+/* Selectable Payment Card Tiles */
 .payment-methods-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
 
+.payment-option {
+  cursor: pointer;
+  position: relative;
+}
+
 .payment-option input {
-  display: none;
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
 }
 
 .payment-card {
@@ -1272,34 +1321,58 @@ html, body {
   align-items: center;
   text-align: center;
   padding: 10px 6px;
-  border: 1.5px solid var(--border);
+  border: 2px solid var(--border);
   border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all 0.2s;
-  background: var(--surface);
+  background: #FFFFFF;
+  transition: all 0.2s ease;
+  min-height: 80px;
+  justify-content: center;
+  position: relative;
 }
 
 .payment-option input:checked + .payment-card {
   border-color: var(--primary);
   background: var(--primary-light);
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
+}
+
+.payment-card-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  font-size: 10px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+}
+
+.payment-option input:checked + .payment-card .payment-card-badge {
+  display: flex;
 }
 
 .payment-icon {
-  font-size: 1.25rem;
+  font-size: 1.3rem;
   margin-bottom: 2px;
 }
 
 .payment-title {
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   font-weight: 700;
   color: var(--text-main);
 }
 
 .payment-sub {
-  font-size: 0.62rem;
+  font-size: 0.65rem;
   color: var(--text-muted);
 }
 
+/* Checkout Price Summary Box */
 .checkout-summary-box {
   background: #F8FAFC;
   border: 1px solid var(--border);
@@ -1308,7 +1381,7 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
 }
 
 .summary-line {
@@ -1341,10 +1414,10 @@ html, body {
   border-radius: var(--radius-sm);
   cursor: pointer;
   border: none;
-  transition: all 0.2s;
-  padding: 9px 16px;
-  font-size: 0.85rem;
-  min-height: 42px;
+  transition: all 0.2s ease;
+  padding: 10px 16px;
+  font-size: 0.88rem;
+  min-height: 44px;
 }
 
 .btn:active {
@@ -1354,7 +1427,7 @@ html, body {
 .btn-primary {
   background: var(--primary);
   color: white;
-  box-shadow: 0 4px 10px rgba(5, 150, 105, 0.3);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);
 }
 
 .btn-primary:active {
@@ -1409,8 +1482,8 @@ html, body {
   left: 50%;
   transform: translateX(-50%);
   width: 90%;
-  max-width: 400px;
-  z-index: 200;
+  max-width: 380px;
+  z-index: 2000;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1418,12 +1491,13 @@ html, body {
 }
 
 .toast {
-  background: rgba(15, 23, 42, 0.92);
+  background: rgba(15, 23, 42, 0.94);
   color: white;
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   padding: 10px 14px;
   border-radius: var(--radius-md);
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 600;
   box-shadow: var(--shadow-lg);
   display: flex;
