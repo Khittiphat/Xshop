@@ -72,6 +72,10 @@ npm start
 | `GET` | `/api/orders/:id` | Get details for a single order with items and driver info |
 | `GET` | `/api/orders/user/:userId` | Get order history for a registered member |
 | `POST` | `/api/orders` | Place an order (enforces guest/member checkout, 0 shipping, CASH/QR only, driver dispatch) |
+| `POST` | `/api/orders/:id/cancel` | Cancel an active order (allowed if status is NOT `DELIVERED`) |
+| `PATCH` | `/api/orders/:id/status` | Internal/driver transition (`PENDING` -> `OUT_FOR_DELIVERY` -> `DELIVERED`) |
+| `GET` | `/api/admin/reports/sales` | Sales revenue & category breakdown (`?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD`) |
+| `GET` | `/api/admin/reports/peak-hours` | Hourly order distribution (00:00 to 23:00) with cloud auto-scaling recommendations |
 
 ### Strict Checkout Business Rules
 1. **Guest Checkout Allowed**: `user_id` can be `null`. Valid customer contact info (`customer_name`, `customer_phone`, `delivery_address`) is mandatory.

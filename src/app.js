@@ -4,6 +4,7 @@ import db from './database/db.js';
 import categoriesRouter from './routes/categories.js';
 import productsRouter from './routes/products.js';
 import ordersRouter from './routes/orders.js';
+import adminRouter from './routes/admin.js';
 
 const app = express();
 
@@ -24,7 +25,12 @@ app.get('/', (req, res) => {
       productById: 'GET /api/products/:id',
       orders: 'GET /api/orders',
       orderById: 'GET /api/orders/:id',
-      createOrder: 'POST /api/orders'
+      userOrders: 'GET /api/orders/user/:userId',
+      createOrder: 'POST /api/orders',
+      cancelOrder: 'POST /api/orders/:id/cancel',
+      updateOrderStatus: 'PATCH /api/orders/:id/status',
+      salesReport: 'GET /api/admin/reports/sales?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD',
+      peakHoursReport: 'GET /api/admin/reports/peak-hours'
     }
   });
 });
@@ -47,6 +53,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/categories', categoriesRouter);
 app.use('/api/products', productsRouter);
 app.use('/api/orders', ordersRouter);
+app.use('/api/admin/reports', adminRouter);
 
 // 404 Handler for undefined routes
 app.use((req, res) => {

@@ -405,14 +405,158 @@ router.post('/', (req, res) => {
 });
 
 /**
- * Business Rule 5: Immutable cart post-checkout
- * Reject any attempt to modify order items after checkout
+ * POST /api/orders/:id/cancel
+ * Allow customer/guest to cancel an order as long as status is NOT 'DELIVERED'.
+ * If status is 'DELIVERED', reject cancellation (no refunds once delivered).
  */
-router.all(['/:id/items', '/:id'], (req, res, next) => {
+router.post('/:id/cancel', (req, res) => {
+  const { id } = req.params;
+  const orderId = Number.parseInt(id, 10);
+
+  if (Number.isNaN(orderId) || orderId <= 0) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid order ID parameter. Must be a positive integer.'
+    });
+  }
+
+  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+  if (!order) {
+    return res.status(404).json({
+      success: false,
+      error: `Order with ID ${orderId} not found.`
+    });
+  }
+
+  if (order.status === 'DELIVERED') {
+    return res.status(400).json({
+      success: false,
+      error: 'Cannot cancel an order that has already been DELIVERED. No refunds once delivered per convenience store policy.'
+    });
+  }
+
+  if (order.status === 'CANCELLED') {
+    return res.status(400).json({
+      success: false,
+      error: `Order with ID ${orderId} is already CANCELLED.`
+    });
+  }
+
+  // Update status to CANCELLED
+  db.prepare(`
+    UPDATE orders 
+    SET status = 'CANCELLED' 
+    WHERE id = ?
+  `).run(orderId);
+
+  return res.json({
+    success: true,
+    message: `Order #${orderId} has been successfully cancelled.`,
+    data: {
+      id: order.id,
+      customer_name: order.customer_name,
+      previous_status: order.status,
+      status: 'CANCELLED',
+      cancelled_at: new Date().toISOString()
+    }
+  });
+});
+
+/**
+ * PATCH /api/orders/:id/status
+ * Internal / mock driver endpoint to transition status:
+ * PENDING -> OUT_FOR_DELIVERY -> DELIVERED
+ */
+router.patch('/:id/status', (req, res) => {
+  const { id } = req.params;
+  const orderId = Number.parseInt(id, 10);
+
+  if (Number.isNaN(orderId) || orderId <= 0) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid order ID parameter. Must be a positive integer.'
+    });
+  }
+
+  const { status, driver_name, driver_phone } = req.body || {};
+  const ALLOWED_STATUSES = ['PENDING', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'];
+
+  if (!status || !ALLOWED_STATUSES.includes(status.toUpperCase())) {
+    return res.status(400).json({
+      success: false,
+      error: `Invalid status '${status}'. Allowed values: ${ALLOWED_STATUSES.join(', ')}`
+    });
+  }
+
+  const targetStatus = status.toUpperCase();
+
+  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+  if (!order) {
+    return res.status(404).json({
+      success: false,
+      error: `Order with ID ${orderId} not found.`
+    });
+  }
+
+  // Disallow transitions from terminal states
+  if (order.status === 'DELIVERED') {
+    return res.status(400).json({
+      success: false,
+      error: 'Cannot update status. Order is already DELIVERED and in a terminal state.'
+    });
+  }
+
+  if (order.status === 'CANCELLED') {
+    return res.status(400).json({
+      success: false,
+      error: 'Cannot update status. Order is CANCELLED.'
+    });
+  }
+
+  let finalDriverName = driver_name || order.driver_name;
+  let finalDriverPhone = driver_phone || order.driver_phone;
+
+  // Auto-assign mock driver if transitioning to OUT_FOR_DELIVERY and none exists
+  if (targetStatus === 'OUT_FOR_DELIVERY' && !finalDriverName) {
+    const assigned = assignMockDriver();
+    finalDriverName = assigned.name;
+    finalDriverPhone = assigned.phone;
+  }
+
+  db.prepare(`
+    UPDATE orders 
+    SET status = ?, driver_name = ?, driver_phone = ?
+    WHERE id = ?
+  `).run(targetStatus, finalDriverName, finalDriverPhone, orderId);
+
+  const updatedOrder = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+
+  return res.json({
+    success: true,
+    message: `Order status updated to '${targetStatus}'.`,
+    data: {
+      id: updatedOrder.id,
+      customer_name: updatedOrder.customer_name,
+      previous_status: order.status,
+      status: updatedOrder.status,
+      driver: {
+        name: updatedOrder.driver_name,
+        phone: updatedOrder.driver_phone
+      },
+      updated_at: new Date().toISOString()
+    }
+  });
+});
+
+/**
+ * Business Rule 5: Immutable cart post-checkout
+ * Reject any attempt to modify order items or replace order contents after checkout
+ */
+router.all(['/:id/items', '/:id/items/:itemId', '/:id'], (req, res, next) => {
   if (['PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     return res.status(405).json({
       success: false,
-      error: 'Order and its items are strictly immutable post-checkout. Modifications are not allowed per convenience store policy.'
+      error: 'Order items and cart contents are strictly immutable post-checkout. Modifications are not allowed per convenience store policy.'
     });
   }
   next();
