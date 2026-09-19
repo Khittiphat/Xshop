@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import db from '../database/db.js';
 import { assignMockDriver, dispatchOrderToLogistics } from '../services/logisticsService.js';
+import { calculateSmartPrice } from '../services/pricingService.js';
 
 const router = Router();
 
@@ -308,7 +309,10 @@ router.post('/', async (req, res) => {
               const catRes = await db.prepare("INSERT INTO categories (name) VALUES ('On-Demand Goods')").run();
               onDemandCat = { id: catRes.lastInsertRowid };
             }
-            const unitPrice = Number(item.unit_price || item.price) || 29.00;
+            let unitPrice = Number(item.unit_price || item.price);
+            if (!unitPrice || Number.isNaN(unitPrice) || unitPrice <= 0) {
+              unitPrice = calculateSmartPrice(String(dynamicName).trim());
+            }
             const insertProduct = await db.prepare(`
               INSERT INTO products (name, category_id, price, icon, description)
               VALUES (?, ?, ?, ?, ?)

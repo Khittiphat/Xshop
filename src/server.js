@@ -2,15 +2,22 @@ import dotenv from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import app from './app.js';
+import db from './database/db.js';
 import { initDatabase } from './database/init.js';
+import { seedDatabase } from './database/seed.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
-// Ensure database schema is initialized
+// Ensure database schema is initialized and default catalog is populated
 await initDatabase();
+const productCountRow = await db.prepare('SELECT COUNT(*) as count FROM products').get();
+if (!productCountRow || productCountRow.count === 0) {
+  console.log('[SERVER STARTUP] Catalog is empty. Automatically populating default Thai convenience store inventory...');
+  await seedDatabase();
+}
 
 const PORT = Number.parseInt(process.env.PORT, 10) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';

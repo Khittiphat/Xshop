@@ -436,35 +436,174 @@ function getAvatarColor(name) {
   return FALLBACK_PALETTE[index];
 }
 
+// =========================================================
+// Smart Keyword Asset & Curated Image Mapper
+// Translates Thai and English keywords to high-resolution Unsplash photo categories
+// =========================================================
+const KEYWORD_IMAGE_MAP = [
+  // Luxury, Vehicles & Big Electronics
+  { regex: /เรือดำน้ำ|submarine/i, query: 'submarine', icon: '⚓', fallbackImg: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&auto=format&fit=crop&q=80' },
+  { regex: /เครื่องบิน|airplane|jet|helicopter/i, query: 'airplane', icon: '✈️', fallbackImg: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&auto=format&fit=crop&q=80' },
+  { regex: /เรือ|yacht|boat/i, query: 'yacht,boat', icon: '🛥️', fallbackImg: 'https://images.unsplash.com/photo-1544551763-77ef2d0cfc6c?w=400&auto=format&fit=crop&q=80' },
+  { regex: /รถยนต์|รถเก๋ง|รถกระบะ|รถตู้|car|automobile|tesla|truck/i, query: 'sports-car,automobile', icon: '🚗', fallbackImg: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=400&auto=format&fit=crop&q=80' },
+  { regex: /รถ|มอเตอร์ไซค์|มอไซค์|motorcycle|scooter|bike/i, query: 'motorcycle', icon: '🏍️', fallbackImg: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=400&auto=format&fit=crop&q=80' },
+  { regex: /ทอง|ทองคำ|gold|เพชร|diamond/i, query: 'gold-bars,gold', icon: '🪙', fallbackImg: 'https://images.unsplash.com/photo-1610375461246-83df859d849d?w=400&auto=format&fit=crop&q=80' },
+  { regex: /iphone|ไอโฟน|มือถือ|smartphone|phone/i, query: 'iphone,smartphone', icon: '📱', fallbackImg: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400&auto=format&fit=crop&q=80' },
+  { regex: /macbook|ipad|laptop|โน้ตบุ๊ค|คอมพิวเตอร์|computer/i, query: 'laptop,computer', icon: '💻', fallbackImg: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&auto=format&fit=crop&q=80' },
+  { regex: /ทีวี|โทรทัศน์|tv|television/i, query: 'smart-tv,television', icon: '📺', fallbackImg: 'https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=400&auto=format&fit=crop&q=80' },
+
+  // Water & Drinks
+  { regex: /น้ำเปล่า|น้ำดื่ม|น้ำสิงห์|น้ำทิพย์|น้ำแร่|water/i, query: 'water-bottle,mineral-water', icon: '💧', fallbackImg: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=400&auto=format&fit=crop&q=80' },
+  { regex: /น้ำแข็ง|ice/i, query: 'ice-cubes', icon: '🧊', fallbackImg: 'https://images.unsplash.com/photo-1518057111178-44a106bad636?w=400&auto=format&fit=crop&q=80' },
+  { regex: /โค้ก|เป๊ปซี่|coke|cola|pepsi|น้ำอัดลม|soda/i, query: 'coca-cola,soda', icon: '🥤', fallbackImg: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400&auto=format&fit=crop&q=80' },
+  { regex: /ชา|ชาเขียว|ชาไทย|tea|matcha/i, query: 'green-tea,iced-tea', icon: '🍵', fallbackImg: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=400&auto=format&fit=crop&q=80' },
+  { regex: /กาแฟ|coffee|latte|espresso/i, query: 'iced-coffee,coffee', icon: '☕', fallbackImg: 'https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=400&auto=format&fit=crop&q=80' },
+  { regex: /นม|นมสด|milk/i, query: 'milk-bottle,dairy', icon: '🥛', fallbackImg: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400&auto=format&fit=crop&q=80' },
+  { regex: /เบียร์|beer|เหล้า|alcohol/i, query: 'cold-beer,bottle', icon: '🍺', fallbackImg: 'https://images.unsplash.com/photo-1608270192809-5a9e3346d0c7?w=400&auto=format&fit=crop&q=80' },
+
+  // Instant Food & Groceries
+  { regex: /มาม่า|ไวไว|ยำยำ|บะหมี่|ราเมง|noodle|ramen/i, query: 'instant-noodles,ramen', icon: '🍜', fallbackImg: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&auto=format&fit=crop&q=80' },
+  { regex: /ไข่|ไข่ไก่|ไข่เป็ด|ไข่ต้ม|egg/i, query: 'fresh-eggs,eggs', icon: '🥚', fallbackImg: 'https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=400&auto=format&fit=crop&q=80' },
+  { regex: /ข้าวสาร|ข้าว|ข้าวหอมมะลิ|rice/i, query: 'white-rice,cooked-rice', icon: '🌾', fallbackImg: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&auto=format&fit=crop&q=80' },
+  { regex: /ขนมปัง|bread|แซนวิช|sandwich/i, query: 'fresh-bread,sandwich', icon: '🥪', fallbackImg: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&auto=format&fit=crop&q=80' },
+  { regex: /ไส้กรอก|sausage|ลูกชิ้น/i, query: 'grilled-sausage', icon: '🌭', fallbackImg: 'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?w=400&auto=format&fit=crop&q=80' },
+  { regex: /ข้าวกล่อง|กะเพรา|อาหาร|ready\s*meal|bento/i, query: 'thai-food,meal', icon: '🍛', fallbackImg: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80' },
+
+  // Snacks & Confectionery
+  { regex: /เลย์|มันฝรั่ง|chips|pringles/i, query: 'potato-chips,chips', icon: '🥔', fallbackImg: 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=400&auto=format&fit=crop&q=80' },
+  { regex: /ขนม|snack|คุกกี้|cookie|oreo/i, query: 'cookies,snack', icon: '🍪', fallbackImg: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=400&auto=format&fit=crop&q=80' },
+  { regex: /ช็อกโกแลต|chocolate|candy/i, query: 'chocolate-bar,candy', icon: '🍫', fallbackImg: 'https://images.unsplash.com/photo-1511381939415-e44015466834?w=400&auto=format&fit=crop&q=80' },
+
+  // Personal Care & Household
+  { regex: /สบู่|soap|ครีมอาบน้ำ|bodywash/i, query: 'organic-soap,soap', icon: '🧼', fallbackImg: 'https://images.unsplash.com/photo-1607006314144-8848c4d29362?w=400&auto=format&fit=crop&q=80' },
+  { regex: /แชมพู|shampoo|ยาสระผม/i, query: 'shampoo-bottle', icon: '🧴', fallbackImg: 'https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?w=400&auto=format&fit=crop&q=80' },
+  { regex: /ยาสีฟัน|toothpaste|แปรงสีฟัน|toothbrush/i, query: 'toothbrush-toothpaste', icon: '🪥', fallbackImg: 'https://images.unsplash.com/photo-1559599101-f09722fb4948?w=400&auto=format&fit=crop&q=80' },
+  { regex: /ทิชชู่|tissue|กระดาษทิชชู่|wipes/i, query: 'tissue-paper,paper-napkin', icon: '🧻', fallbackImg: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400&auto=format&fit=crop&q=80' },
+  { regex: /ผงซักฟอก|น้ำยาล้างจาน|sponge|detergent/i, query: 'cleaning-supplies,dishwashing', icon: '🧽', fallbackImg: 'https://images.unsplash.com/photo-1585670149967-b4f4da88cc9f?w=400&auto=format&fit=crop&q=80' }
+];
+
+function resolveDynamicAsset(keyword) {
+  const clean = (keyword || '').trim();
+  for (const item of KEYWORD_IMAGE_MAP) {
+    if (item.regex.test(clean)) {
+      return {
+        image_url: item.fallbackImg,
+        icon: item.icon
+      };
+    }
+  }
+
+  // Fallback high quality grocery & convenience image
+  return {
+    image_url: 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=400&auto=format&fit=crop&q=80',
+    icon: '✨'
+  };
+}
+
+/**
+ * Smart Heuristic Pricing Generator
+ * Replaces flat 20-50 THB with context-aware pricing
+ */
 function generatePriceForKeyword(keyword) {
-  if (!keyword) return 29.00;
+  if (!keyword || typeof keyword !== 'string') return 35.00;
+  const kw = keyword.toLowerCase().trim();
+
+  // 1. Luxury / Vehicles / Electronics / High-ticket items
+  if (/เรือดำน้ำ|submarine/i.test(kw)) {
+    return 15000000000.00;
+  }
+  if (/เครื่องบิน|airplane|jet|helicopter/i.test(kw)) {
+    return 25000000.00;
+  }
+  if (/เรือ|boat|yacht/i.test(kw)) {
+    return 1500000.00;
+  }
+  if (/รถยนต์|รถเก๋ง|รถกระบะ|รถตู้|car|automobile|truck|tesla/i.test(kw)) {
+    return 850000.00;
+  }
+  if (/รถ|มอเตอร์ไซค์|มอไซค์|motorcycle|bike/i.test(kw)) {
+    return 65000.00;
+  }
+  if (/ทอง|ทองคำ|gold|เพชร|diamond/i.test(kw)) {
+    return 45000.00;
+  }
+  if (/iphone|ไอโฟน|macbook|ipad|laptop|โน้ตบุ๊ค|คอมพิวเตอร์|computer|playstation|ps5/i.test(kw)) {
+    return 39900.00;
+  }
+  if (/ทีวี|โทรทัศน์|tv|television|ตู้เย็น|refrigerator|แอร์|air\s*conditioner/i.test(kw)) {
+    return 14900.00;
+  }
+
+  // 2. Water / Basic drinks: ฿7 - ฿15
+  if (/น้ำเปล่า|น้ำดื่ม|น้ำสิงห์|น้ำทิพย์|น้ำแร่|water|mineral/i.test(kw)) {
+    return 10.00;
+  }
+  if (/น้ำแข็ง|ice/i.test(kw)) {
+    return 8.00;
+  }
+  if (/โซดา|soda/i.test(kw)) {
+    return 12.00;
+  }
+  if (/นม|เป๊ปซี่|โค้ก|coke|cola|pepsi|sprite|fanta|ชา|tea|กาแฟ|coffee|drink|juice/i.test(kw)) {
+    return 15.00;
+  }
+
+  // 3. Instant foods, noodles, ready meals: ฿7 - ฿85
+  if (/มาม่า|ไวไว|ยำยำ|บะหมี่|noodle|ramen/i.test(kw)) {
+    return 7.00;
+  }
+  if (/ไข่|ไข่ไก่|ไข่ต้ม|egg/i.test(kw)) {
+    return 16.00;
+  }
+  if (/ขนมปัง|bread|sandwich|ซาลาเปา|ไส้กรอก|sausage/i.test(kw)) {
+    return 29.00;
+  }
+  if (/ข้าวกล่อง|ข้าวผัด|เบนโตะ|ready\s*meal|bento/i.test(kw)) {
+    return 45.00;
+  }
+  if (/ข้าวสาร|ข้าวหอมมะลิ|rice/i.test(kw)) {
+    return 65.00;
+  }
+
+  // 4. General snacks / groceries / personal care / household: ฿15 - ฿85
+  if (/เลย์|มันฝรั่ง|chips|pringles|snack|cookie|oreo|chocolate|ช็อกโกแลต|ขนม/i.test(kw)) {
+    return 30.00;
+  }
+  if (/สบู่|soap|ยาสีฟัน|toothpaste|แปรงสีฟัน|toothbrush|แชมพู|shampoo/i.test(kw)) {
+    return 18.00;
+  }
+  if (/ผงซักฟอก|detergent|น้ำยาล้างจาน|ทิชชู่|tissue|wipe/i.test(kw)) {
+    return 35.00;
+  }
+
+  // 5. Standard fallback: ฿25 - ฿60
   let hash = 0;
   for (let i = 0; i < keyword.length; i++) {
     hash = keyword.charCodeAt(i) + ((hash << 5) - hash);
   }
-  // Generates reasonable convenience store price between 20 and 50 THB
-  const base = 20 + (Math.abs(hash) % 31);
-  return Number(base.toFixed(2));
+  const fallback = 25 + (Math.abs(hash) % 36);
+  return Number(fallback.toFixed(2));
 }
 
 function createDynamicProduct(keyword) {
   const cleanKeyword = keyword.trim();
   const price = generatePriceForKeyword(cleanKeyword);
-  const encodedKeyword = encodeURIComponent(cleanKeyword);
+  const asset = resolveDynamicAsset(cleanKeyword);
   return {
     id: `dyn_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
     name: cleanKeyword,
     category_id: 999,
     category_name: 'On-Demand Goods',
     price: price,
-    icon: '✨',
-    image_url: `https://loremflickr.com/300/300/${encodedKeyword}`,
-    description: 'Instant on-demand convenience item • Freshly prepared for delivery',
+    icon: asset.icon,
+    image_url: asset.image_url,
+    description: 'Instant on-demand convenience item • Verified & delivered 24/7',
     is_dynamic: true
   };
 }
 
 function renderProductIconHtml(product, sizeClass = '') {
+  const prodEmoji = product.icon || '✨';
   if (product.image_url) {
     return `
       <div class="product-icon-box product-img-box ${sizeClass}">
@@ -473,9 +612,9 @@ function renderProductIconHtml(product, sizeClass = '') {
           alt="${escapeHtml(product.name)}" 
           class="product-thumb-img" 
           loading="lazy" 
-          onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';"
+          onerror="this.style.display='none'; const fb = this.parentElement.querySelector('.fallback-avatar'); if(fb) fb.style.display='flex';"
         />
-        <div class="fallback-avatar hidden" style="background-color: ${getAvatarColor(product.name)};">✨</div>
+        <div class="fallback-avatar" style="display: none; background-color: ${getAvatarColor(product.name)};">${escapeHtml(prodEmoji)}</div>
       </div>
     `;
   }

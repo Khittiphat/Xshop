@@ -30,135 +30,223 @@ export async function seedDatabase() {
     const categoryRows = await db.prepare('SELECT id, name FROM categories').all();
     const catMap = Object.fromEntries(categoryRows.map(c => [c.name, c.id]));
 
-    // 2. Seed Products (15+ realistic convenience store products with emoji icons)
-    const products = [
-      // Snacks
-      {
-        name: "Lay's Classic Potato Chips 50g",
-        category_id: catMap['Snacks'],
-        price: 1.50,
-        icon: '🥔',
-        description: 'Crispy, golden-fried potato chips lightly seasoned with sea salt.'
-      },
-      {
-        name: 'Pringles Sour Cream & Onion 107g',
-        category_id: catMap['Snacks'],
-        price: 2.40,
-        icon: '🥫',
-        description: 'Iconic stackable potato crisps bursting with savory sour cream and herb flavor.'
-      },
-      {
-        name: 'Oreo Original Chocolate Sandwich Cookies 133g',
-        category_id: catMap['Snacks'],
-        price: 1.80,
-        icon: '🍪',
-        description: 'Rich cocoa wafers sandwiched around smooth vanilla cream.'
-      },
-      {
-        name: 'Doritos Nacho Cheese Tortilla Chips 140g',
-        category_id: catMap['Snacks'],
-        price: 2.60,
-        icon: '🧀',
-        description: 'Bold, crunchy corn tortilla chips packed with tangy melted nacho cheese.'
-      },
+    // Migrate legacy English products if any exist to prevent duplicate catalog entries
+    const legacyNameMap = {
+      "Lay's Classic Potato Chips 50g": "เลย์คลาสสิค รสมันฝรั่งแท้ 50g (Lay's Classic Potato Chips)",
+      "Pringles Sour Cream & Onion 107g": "พริงเกิลส์ รสซาวครีมและหัวหอม 107g (Pringles Sour Cream & Onion)",
+      "Oreo Original Chocolate Sandwich Cookies 133g": "โอรีโอ คุกกี้แซนวิชรสช็อกโกแลต 133g (Oreo Original Cookies)",
+      "Doritos Nacho Cheese Tortilla Chips 140g": "ดอริโทส นาโชชีส 140g (Doritos Nacho Cheese Tortilla Chips)",
+      "Coca-Cola Original Taste 330ml Can": "โค้ก ออริจินัล 325ml กระป๋อง (Coca-Cola Original Can)",
+      "Pokka Japanese Green Tea No Sugar 500ml": "ชาเขียวโออิชิ รสต้นตำรับ 500ml (Oishi Green Tea Original)",
+      "Red Bull Energy Drink 250ml": "กระทิงแดง เรดบูล 250ml (Red Bull Energy Drink)",
+      "Evian Natural Mineral Water 500ml": "น้ำดื่มสิงห์ 600ml (Singha Drinking Water)",
+      "Nescafe Gold Iced Latte 240ml Can": "เนสกาแฟ เอสเปรสโซ โรสต์ 180ml กระป๋อง (Nescafe Espresso Roast)",
+      "Organic Fresh Whole Milk 1L": "นมสดเมจิ พาสเจอร์ไรส์ 200ml (Meiji Fresh Milk)",
+      "Kleenex Ultra Soft Facial Tissues 3-Pack": "ทิชชู่พรีเมียม สก๊อตต์ 3 ม้วน (Scott Facial & Toilet Tissue 3-Pack)",
+      "Scotch-Brite Heavy Duty Scrub Sponge 3-Pack": "ฟองน้ำล้างจาน สก๊อตช์-ไบรต์ แพ็ก 3 ชิ้น (Scotch-Brite Scrub Sponge 3-Pack)",
+      "Clorox Disinfecting Wipes Fresh Scent 35-Count": "สเปรย์แอลกอฮอล์ทำความสะอาด 100ml (Alcohol Sanitizing Spray)",
+      "Nongshim Shin Ramyun Gourmet Spicy 120g": "มาม่า รสต้มยำกุ้ง 60g (Mama Instant Noodles Tom Yum Kung)",
+      "Nissin Cup Noodles Seafood 75g": "มาม่าคัพ รสต้มยำกุ้งน้ำข้น 60g (Mama Cup Noodles Creamy Tom Yum)",
+      "CP Teriyaki Chicken with Rice 250g": "ข้าวกล่องกะเพราไก่ไข่ดาว (CP Stir-Fried Basil Chicken with Rice)",
+      "Colgate Total Clean Mint Toothpaste 100g": "ยาสีฟันคอลเกต โททอล 100g (Colgate Total Clean Mint Toothpaste)"
+    };
 
+    for (const [oldName, newName] of Object.entries(legacyNameMap)) {
+      const oldProd = await db.prepare('SELECT id FROM products WHERE name = ?').get(oldName);
+      const newProd = await db.prepare('SELECT id FROM products WHERE name = ?').get(newName);
+      if (oldProd && newProd) {
+        await db.prepare('UPDATE order_items SET product_id = ? WHERE product_id = ?').run(newProd.id, oldProd.id);
+        await db.prepare('DELETE FROM products WHERE id = ?').run(oldProd.id);
+      } else if (oldProd && !newProd) {
+        await db.prepare('UPDATE products SET name = ? WHERE id = ?').run(newName, oldProd.id);
+      }
+    }
+
+    // 2. Seed Products (24+ realistic Thai convenience store products with emoji icons)
+    const products = [
       // Drinks
       {
-        name: 'Coca-Cola Original Taste 330ml Can',
+        name: "น้ำดื่มสิงห์ 600ml (Singha Drinking Water)",
         category_id: catMap['Drinks'],
-        price: 1.20,
-        icon: '🥤',
-        description: 'The world-famous refreshing carbonated soft drink served ice-cold.'
-      },
-      {
-        name: 'Pokka Japanese Green Tea No Sugar 500ml',
-        category_id: catMap['Drinks'],
-        price: 1.60,
-        icon: '🍵',
-        description: 'Authentic 100% real brewed Japanese green tea with zero calories and zero sugar.'
-      },
-      {
-        name: 'Red Bull Energy Drink 250ml',
-        category_id: catMap['Drinks'],
-        price: 2.50,
-        icon: '⚡',
-        description: 'Vitalizes body and mind with caffeine, taurine, and B-group vitamins.'
-      },
-      {
-        name: 'Evian Natural Mineral Water 500ml',
-        category_id: catMap['Drinks'],
-        price: 1.90,
+        price: 10.00,
         icon: '💧',
-        description: 'Naturally pure spring water sourced directly from the French Alps.'
+        description: 'น้ำดื่มสะอาดบริสุทธิ์ ตราสิงห์ ขนาดพกพา 600 มล.'
       },
       {
-        name: 'Nescafe Gold Iced Latte 240ml Can',
+        name: "โค้ก ออริจินัล 325ml กระป๋อง (Coca-Cola Original Can)",
         category_id: catMap['Drinks'],
-        price: 1.95,
+        price: 16.00,
+        icon: '🥤',
+        description: 'เครื่องดื่มน้ำอัดลมรสชาติยอดนิยม เย็นซ่าชื่นใจ (Cola / Soda)'
+      },
+      {
+        name: "ชาเขียวโออิชิ รสต้นตำรับ 500ml (Oishi Green Tea Original)",
+        category_id: catMap['Drinks'],
+        price: 20.00,
+        icon: '🍵',
+        description: 'ชาเขียวแท้สกัดจากใบชาคุณภาพ รสชาติกลมกล่อม หอมสดชื่น (Green Tea)'
+      },
+      {
+        name: "นมสดเมจิ พาสเจอร์ไรส์ 200ml (Meiji Fresh Milk)",
+        category_id: catMap['Drinks'],
+        price: 13.00,
+        icon: '🥛',
+        description: 'นมโคแท้ 100% สดใหม่ อุดมด้วยแคลเซียมและโปรตีนธรรมชาติ'
+      },
+      {
+        name: "เนสกาแฟ เอสเปรสโซ โรสต์ 180ml กระป๋อง (Nescafe Espresso Roast)",
+        category_id: catMap['Drinks'],
+        price: 17.00,
         icon: '☕',
-        description: 'Smooth and milky chilled coffee crafted with premium roasted Arabica beans.'
+        description: 'กาแฟปรุงสำเร็จพร้อมดื่มรสเข้มข้น หอมกลิ่นอาราบิก้า (Iced Coffee)'
       },
       {
-        name: 'Organic Fresh Whole Milk 1L',
+        name: "กระทิงแดง เรดบูล 250ml (Red Bull Energy Drink)",
         category_id: catMap['Drinks'],
-        price: 2.80,
-        icon: null, // Tests fallback colored CSS letter avatar
-        description: 'Fresh pasteurized farm milk rich in calcium and natural proteins.'
+        price: 20.00,
+        icon: '⚡',
+        description: 'เครื่องดื่มชูกำลัง เพิ่มพลังและความสดชื่น พร้อมทำงานตลอดวัน'
       },
 
-      // Household essentials
+      // Snacks
       {
-        name: 'Kleenex Ultra Soft Facial Tissues 3-Pack',
-        category_id: catMap['Household Essentials'],
-        price: 4.20,
-        icon: '🧻',
-        description: '3-ply gentle and highly absorbent facial tissues for everyday family care.'
+        name: "เลย์คลาสสิค รสมันฝรั่งแท้ 50g (Lay's Classic Potato Chips)",
+        category_id: catMap['Snacks'],
+        price: 30.00,
+        icon: '🥔',
+        description: 'มันฝรั่งทอดกรอบแผ่นเรียบ คัดสรรจากมันฝรั่งแท้คุณภาพดี กรอบอร่อย (Chips)'
       },
       {
-        name: 'Scotch-Brite Heavy Duty Scrub Sponge 3-Pack',
-        category_id: catMap['Household Essentials'],
-        price: 3.50,
-        icon: '🧽',
-        description: 'Tough scourer pad combined with high-foam sponge for easy dishwashing.'
+        name: "พริงเกิลส์ รสซาวครีมและหัวหอม 107g (Pringles Sour Cream & Onion)",
+        category_id: catMap['Snacks'],
+        price: 55.00,
+        icon: '🥫',
+        description: 'มันฝรั่งทอดกรอบรูปทรงอานม้า กรอบอร่อย รสชาติเข้มข้น (Pringles Chips)'
       },
       {
-        name: 'Clorox Disinfecting Wipes Fresh Scent 35-Count',
-        category_id: catMap['Household Essentials'],
-        price: 3.90,
-        icon: '🧼',
-        description: 'Multi-surface sanitizing wipes killing 99.9% of viruses and bacteria.'
+        name: "เบนโตะ ปลาหมึกอบทรงเครื่อง 20g (Bento Spicy Squid Snack)",
+        category_id: catMap['Snacks'],
+        price: 20.00,
+        icon: '🦑',
+        description: 'ปลาหมึกอบทรงเครื่องรสเผ็ดจัดจ้าน อร่อยเคี้ยวเพลิน'
+      },
+      {
+        name: "โอรีโอ คุกกี้แซนวิชรสช็อกโกแลต 133g (Oreo Original Cookies)",
+        category_id: catMap['Snacks'],
+        price: 32.00,
+        icon: '🍪',
+        description: 'คุกกี้รสช็อกโกแลตสอดไส้ครีมวานิลลา บิด ชิมครีม จุ่มนม (Cookies)'
+      },
+      {
+        name: "ทาโร่ ปลาสวรรค์ รสบาร์บีคิว 30g (Taro Fish Snack BBQ)",
+        category_id: catMap['Snacks'],
+        price: 20.00,
+        icon: '🐟',
+        description: 'เส้นปลาสวรรค์กรอบอร่อย ไขมันต่ำ มีโปรตีนจากเนื้อปลาแท้'
+      },
+      {
+        name: "ดอริโทส นาโชชีส 140g (Doritos Nacho Cheese Tortilla Chips)",
+        category_id: catMap['Snacks'],
+        price: 45.00,
+        icon: '🧀',
+        description: 'แผ่นข้าวโพดทอดกรอบรสชีสเข้มข้น หอมมัน กรอบถึงใจ (Chips)'
       },
 
       // Instant Foods & Ready Meals
       {
-        name: 'Nongshim Shin Ramyun Gourmet Spicy 120g',
+        name: "มาม่า รสต้มยำกุ้ง 60g (Mama Instant Noodles Tom Yum Kung)",
         category_id: catMap['Instant Foods & Ready Meals'],
-        price: 1.75,
+        price: 7.00,
         icon: '🍜',
-        description: 'Famous spicy Korean instant ramen featuring chewy noodles and a rich beef broth.'
+        description: 'บะหมี่กึ่งสำเร็จรูปรสต้มยำกุ้งยอดนิยม แซ่บถึงใจรสต้มยำแท้ (Noodles)'
       },
       {
-        name: 'Nissin Cup Noodles Seafood 75g',
+        name: "มาม่าคัพ รสต้มยำกุ้งน้ำข้น 60g (Mama Cup Noodles Creamy Tom Yum)",
         category_id: catMap['Instant Foods & Ready Meals'],
-        price: 1.65,
+        price: 15.00,
         icon: '🍲',
-        description: 'Classic quick meal filled with calamari, crab stick, egg, and cabbage in savory broth.'
+        description: 'บะหมี่ถ้วยกึ่งสำเร็จรูป สะดวก รวดเร็ว พร้อมทานทันที เพียงเติมน้ำร้อน'
       },
       {
-        name: 'CP Teriyaki Chicken with Rice 250g',
+        name: "ข้าวสารหอมมะลิแท้ 1 กก. (Thai Jasmine Rice 1kg)",
         category_id: catMap['Instant Foods & Ready Meals'],
-        price: 4.50,
-        icon: '🍗',
-        description: 'Microwaveable ready meal with tender grilled chicken glazed in sweet teriyaki sauce.'
+        price: 65.00,
+        icon: '🌾',
+        description: 'ข้าวหอมมะลิแท้เกรดพรีเมียม หุงขึ้นหม้อ นุ่ม หอม อร่อย (Rice)'
+      },
+      {
+        name: "ไข่ไก่สดคละไซซ์ แพ็ก 10 ฟอง (Fresh Chicken Eggs 10-Pack)",
+        category_id: catMap['Instant Foods & Ready Meals'],
+        price: 60.00,
+        icon: '🥚',
+        description: 'ไข่ไก่สดจากฟาร์ม สะอาด ปลอดภัย อุดมด้วยคุณค่าทางอาหาร (Eggs)'
+      },
+      {
+        name: "ข้าวกล่องกะเพราไก่ไข่ดาว (CP Stir-Fried Basil Chicken with Rice)",
+        category_id: catMap['Instant Foods & Ready Meals'],
+        price: 45.00,
+        icon: '🍛',
+        description: 'อาหารพร้อมทานไมโครเวฟ รสชาติจัดจ้าน หอมใบกะเพรา เสิร์ฟพร้อมข้าวสวย'
+      },
+      {
+        name: "แซนวิชอบร้อน แฮมชีส (Ham & Cheese Toasted Sandwich)",
+        category_id: catMap['Instant Foods & Ready Meals'],
+        price: 29.00,
+        icon: '🥪',
+        description: 'แซนวิชอบร้อน กรอบนอกนุ่มใน ไส้แฮมและชีสเยิ้มๆ ร้อนๆ'
+      },
+
+      // Household Essentials
+      {
+        name: "ทิชชู่พรีเมียม สก๊อตต์ 3 ม้วน (Scott Facial & Toilet Tissue 3-Pack)",
+        category_id: catMap['Household Essentials'],
+        price: 39.00,
+        icon: '🧻',
+        description: 'กระดาษทิชชู่หนานุ่ม 3 ชั้น ซึมซับดีเยี่ยม อ่อนโยนต่อผิว (Tissue)'
+      },
+      {
+        name: "น้ำยาล้างจาน ซันไลต์ เลมอนเทอร์โบ 500ml (Sunlight Dishwashing Liquid)",
+        category_id: catMap['Household Essentials'],
+        price: 32.00,
+        icon: '🍋',
+        description: 'ขจัดคราบมันและกลิ่นคาวได้อย่างสะอาดหมดจด พร้อมกลิ่นเลมอนสดชื่น'
+      },
+      {
+        name: "ฟองน้ำล้างจาน สก๊อตช์-ไบรต์ แพ็ก 3 ชิ้น (Scotch-Brite Scrub Sponge 3-Pack)",
+        category_id: catMap['Household Essentials'],
+        price: 35.00,
+        icon: '🧽',
+        description: 'ใยขัดพร้อมฟองน้ำคุณภาพสูง ทำความสะอาดคราบฝังแน่นได้อย่างง่ายดาย'
+      },
+      {
+        name: "สเปรย์แอลกอฮอล์ทำความสะอาด 100ml (Alcohol Sanitizing Spray)",
+        category_id: catMap['Household Essentials'],
+        price: 29.00,
+        icon: '🧴',
+        description: 'แอลกอฮอล์ 75% ฆ่าเชื้อแบคทีเรียและไวรัส แห้งไว ไม่เหนียวเหนอะหนะ'
       },
 
       // Personal Care
       {
-        name: 'Colgate Total Clean Mint Toothpaste 100g',
+        name: "สบู่ก้อน โพรเทคส์ 65g (Protex Antibacterial Bar Soap)",
         category_id: catMap['Personal Care'],
-        price: 2.90,
+        price: 18.00,
+        icon: '🧼',
+        description: 'สบู่ก้อนชำระล้างแบคทีเรีย 99.9% กลิ่นหอมสะอาดสดชื่น (Soap)'
+      },
+      {
+        name: "ยาสีฟันคอลเกต โททอล 100g (Colgate Total Clean Mint Toothpaste)",
+        category_id: catMap['Personal Care'],
+        price: 49.00,
         icon: '🪥',
-        description: '12-hour antibacterial protection for teeth, tongue, cheeks, and gums.'
+        description: 'ปกป้องแบคทีเรียนาน 12 ชั่วโมง เพื่อลมหายใจสดชื่นและฟันแข็งแรง'
+      },
+      {
+        name: "แชมพูสระผม ซันซิล 120ml (Sunsilk Hair Shampoo)",
+        category_id: catMap['Personal Care'],
+        price: 35.00,
+        icon: '💆',
+        description: 'บำรุงผมให้นุ่มลื่น เงางาม จัดทรงง่ายตลอดวัน'
       }
     ];
 
