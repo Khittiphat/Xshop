@@ -38,17 +38,22 @@ app.get('/api', (req, res) => {
   });
 });
 
-// Health Check
-app.get('/api/health', (req, res) => {
+// Health Check for Cloud Load Balancers & Ingress
+app.get(['/api/health', '/health'], (req, res) => {
   try {
     const check = db.prepare('SELECT 1 as alive').get();
-    res.json({
-      status: 'healthy',
+    res.status(200).json({
+      status: 'ok',
+      uptime: process.uptime(),
       database: check && check.alive === 1 ? 'connected' : 'error',
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    res.status(500).json({ status: 'unhealthy', error: error.message });
+    res.status(500).json({
+      status: 'error',
+      uptime: process.uptime(),
+      error: error.message
+    });
   }
 });
 

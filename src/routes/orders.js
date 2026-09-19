@@ -206,7 +206,8 @@ router.post('/', (req, res) => {
     customer_phone,
     delivery_address,
     payment_method,
-    items
+    items,
+    status
   } = req.body;
 
   // 1. Validate customer contact info (required for both guest and registered checkout)
@@ -263,6 +264,12 @@ router.post('/', (req, res) => {
 
   const normalizedPaymentMethod = payment_method.toUpperCase();
 
+  // Initial order status: defaults to OUT_FOR_DELIVERY unless PENDING is explicitly requested
+  let initialStatus = 'OUT_FOR_DELIVERY';
+  if (status && ['PENDING', 'OUT_FOR_DELIVERY'].includes(String(status).toUpperCase())) {
+    initialStatus = String(status).toUpperCase();
+  }
+
   // 2. Validate items: Minimum 1 item required. No upper limit on quantity.
   if (!Array.isArray(items) || items.length === 0) {
     return res.status(400).json({
@@ -282,18 +289,47 @@ router.post('/', (req, res) => {
       const getProductStmt = db.prepare('SELECT id, name, price FROM products WHERE id = ?');
 
       for (const item of items) {
-        if (!item.product_id || typeof item.product_id !== 'number' || item.product_id <= 0) {
-          throw new Error('Each item must specify a valid positive product_id.');
-        }
-
         const quantity = Number.parseInt(item.quantity, 10);
         if (Number.isNaN(quantity) || quantity < 1) {
-          throw new Error(`Invalid item quantity (${item.quantity}) for product_id ${item.product_id}. Minimum quantity per item is 1.`);
+          throw new Error(`Invalid item quantity (${item.quantity}). Minimum quantity per item is 1.`);
         }
 
-        const product = getProductStmt.get(item.product_id);
+        let product = null;
+        if (item.product_id && typeof item.product_id === 'number' && item.product_id > 0) {
+          product = getProductStmt.get(item.product_id);
+        }
+
+        // Auto-provision dynamic / on-demand items into products table if not found
         if (!product) {
-          throw new Error(`Product with ID ${item.product_id} not found.`);
+          const dynamicName = item.name || item.product_name;
+          if (dynamicName && String(dynamicName).trim()) {
+            let onDemandCat = db.prepare("SELECT id FROM categories WHERE name = 'On-Demand Goods'").get();
+            if (!onDemandCat) {
+              const catRes = db.prepare("INSERT INTO categories (name) VALUES ('On-Demand Goods')").run();
+              onDemandCat = { id: catRes.lastInsertRowid };
+            }
+            const unitPrice = Number(item.unit_price || item.price) || 29.00;
+            const insertProduct = db.prepare(`
+              INSERT INTO products (name, category_id, price, icon, description)
+              VALUES (?, ?, ?, ?, ?)
+            `).run(
+              String(dynamicName).trim(),
+              onDemandCat.id,
+              unitPrice,
+              item.icon || '✨',
+              item.description || 'On-Demand Custom Item'
+            );
+            product = {
+              id: insertProduct.lastInsertRowid,
+              name: String(dynamicName).trim(),
+              price: unitPrice
+            };
+          } else {
+            if (!item.product_id || typeof item.product_id !== 'number' || item.product_id <= 0) {
+              throw new Error('Each item must specify a valid positive product_id or dynamic item details.');
+            }
+            throw new Error(`Product with ID ${item.product_id} not found.`);
+          }
         }
 
         const lineTotal = product.price * quantity;
@@ -317,7 +353,7 @@ router.post('/', (req, res) => {
         INSERT INTO orders (
           user_id, customer_name, customer_phone, delivery_address,
           total_amount, payment_method, status, driver_name, driver_phone
-        ) VALUES (?, ?, ?, ?, ?, ?, 'OUT_FOR_DELIVERY', ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       const orderResult = insertOrderStmt.run(
@@ -327,6 +363,7 @@ router.post('/', (req, res) => {
         delivery_address.trim(),
         totalAmount,
         normalizedPaymentMethod,
+        initialStatus,
         assignedDriver.name,
         assignedDriver.phone
       );
@@ -351,7 +388,7 @@ router.post('/', (req, res) => {
         customer_phone: customer_phone.trim(),
         delivery_address: delivery_address.trim(),
         payment_method: normalizedPaymentMethod,
-        status: 'OUT_FOR_DELIVERY',
+        status: initialStatus,
         driver_name: assignedDriver.name,
         driver_phone: assignedDriver.phone,
         pricing: {

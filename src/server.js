@@ -12,11 +12,29 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 // Ensure database schema is initialized
 initDatabase();
 
-const PORT = process.env.PORT || 3000;
+const PORT = Number.parseInt(process.env.PORT, 10) || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
 
-const server = app.listen(PORT, () => {
-  console.log(`[X MART SERVER] Running at http://localhost:${PORT}`);
+const server = app.listen(PORT, HOST, () => {
+  console.log(`[X MART SERVER] Running at http://${HOST}:${PORT}`);
   console.log(`[X MART SERVER] Environment: ${process.env.NODE_ENV || 'development'}`);
 });
+
+// Graceful shutdown handling for Cloud container lifecycle
+const shutdown = (signal) => {
+  console.log(`[X MART SERVER] Received ${signal}. Shutting down gracefully...`);
+  server.close(() => {
+    console.log('[X MART SERVER] HTTP server closed.');
+    process.exit(0);
+  });
+  // Force exit if connections take too long to close
+  setTimeout(() => {
+    console.error('[X MART SERVER] Forced shutdown after timeout.');
+    process.exit(1);
+  }, 10000).unref();
+};
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
 
 export default server;

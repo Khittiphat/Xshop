@@ -6,10 +6,10 @@ export const logisticsEmitter = new EventEmitter();
 export const dispatchedOrdersLog = [];
 
 const DRIVER_POOL = [
-  { name: 'Somchai Express', phone: '+66-81-234-5678' },
-  { name: 'Nattapong Swift', phone: '+66-82-345-6789' },
-  { name: 'Apirak Rider', phone: '+66-83-456-7890' },
-  { name: 'Bob Express Rider', phone: '+1-555-0199' }
+  { name: 'Somchai Express', phone: '089-123-4567' },
+  { name: 'Nattapong Swift', phone: '089-234-5678' },
+  { name: 'Apirak Rider', phone: '089-345-6789' },
+  { name: 'Bob Express Rider', phone: '089-987-6543' }
 ];
 
 let driverIndex = 0;

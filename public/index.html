@@ -24,6 +24,10 @@
         </div>
 
         <div class="header-actions">
+          <button id="admin-analytics-btn" class="header-pill-btn admin-pill" title="Admin Analytics & Peak Hours" aria-label="Open Admin Analytics">
+            <span>📊</span>
+            <span class="user-status-text">Admin</span>
+          </button>
           <button id="user-mode-btn" class="header-pill-btn" title="Toggle Member Mode" aria-label="Toggle user mode">
             <span id="user-avatar" class="user-avatar">👤</span>
             <span id="user-status-text" class="user-status-text">Guest</span>
@@ -111,11 +115,11 @@
             <div id="track-status-pill" class="status-pill status-pending">PENDING</div>
           </div>
 
-          <!-- Status Stepper -->
-          <div class="status-stepper">
+          <!-- Status Stepper (Pending -> Out for Delivery -> Delivered) -->
+          <div class="status-stepper" aria-label="Order progress">
             <div class="step" id="step-ordered">
               <div class="step-icon">📝</div>
-              <span class="step-label">Ordered</span>
+              <span class="step-label">Pending</span>
             </div>
             <div class="step-line" id="line-1"></div>
             <div class="step" id="step-out">
@@ -136,8 +140,8 @@
               <span class="courier-role">Dedicated Courier</span>
               <strong id="track-driver-name" class="courier-name">Somchai Express</strong>
               <div class="courier-contact">
-                <a id="track-driver-phone-link" href="tel:" class="btn-call" aria-label="Call Courier">
-                  📞 <span id="track-driver-phone">+66-81-234-5678</span>
+                <a id="track-driver-phone-link" href="tel:0891234567" class="btn-call" aria-label="Call Courier">
+                  📞 <span id="track-driver-phone">089-123-4567</span>
                 </a>
               </div>
             </div>
@@ -191,10 +195,11 @@
 
           <!-- Interactive Driver Simulation Toolbar (For test/demo) -->
           <div class="simulation-toolbar">
-            <span class="sim-title">⚙️ Staff / Driver Demo Controls</span>
+            <span class="sim-title">⚙️ Simulated Status Transitions</span>
             <div class="sim-buttons">
-              <button id="sim-out-for-delivery" class="btn btn-sm btn-outline">Set: Out for Delivery</button>
-              <button id="sim-delivered" class="btn btn-sm btn-outline">Set: Delivered</button>
+              <button id="sim-pending" class="btn btn-sm btn-outline">Pending</button>
+              <button id="sim-out-for-delivery" class="btn btn-sm btn-outline">Out for Delivery</button>
+              <button id="sim-delivered" class="btn btn-sm btn-outline">Delivered</button>
             </div>
           </div>
         </div>
@@ -230,6 +235,117 @@
           <h3>No Past Orders Found</h3>
           <p>You haven't placed any orders with this member account yet.</p>
           <button class="btn btn-primary" id="history-shop-now-btn">Start Shopping</button>
+        </div>
+      </section>
+
+      <!-- VIEW 4: ADMIN SALES ANALYTICS & SERVER PEAK HOURS -->
+      <section id="view-analytics" class="view hidden">
+        <div class="page-title-row">
+          <div class="analytics-title-wrap">
+            <h2>Admin Analytics</h2>
+            <p class="subtitle">Sales Revenue & Server Peak Hours</p>
+          </div>
+          <button id="analytics-close-btn" class="btn btn-sm btn-outline">✕ Back</button>
+        </div>
+
+        <!-- Section 1: Sales Analytics & Date Filter -->
+        <div class="analytics-card">
+          <div class="analytics-card-header">
+            <h3>📈 Sales Performance</h3>
+            <span class="report-badge">Live SQL</span>
+          </div>
+
+          <!-- Date Range Filter Form -->
+          <div class="date-filter-group">
+            <div class="date-input-wrap">
+              <label for="sales-start-date">Start:</label>
+              <input type="date" id="sales-start-date" class="date-picker-input">
+            </div>
+            <div class="date-input-wrap">
+              <label for="sales-end-date">End:</label>
+              <input type="date" id="sales-end-date" class="date-picker-input">
+            </div>
+            <button id="sales-filter-apply-btn" class="btn btn-primary btn-sm">Filter</button>
+          </div>
+
+          <!-- Quick Presets -->
+          <div class="date-presets-row">
+            <button type="button" class="preset-btn" data-preset="today">Today</button>
+            <button type="button" class="preset-btn" data-preset="7d">Last 7 Days</button>
+            <button type="button" class="preset-btn active" data-preset="30d">Last 30 Days</button>
+          </div>
+
+          <!-- Key Metrics / KPI Grid -->
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <span class="kpi-label">Total Revenue</span>
+              <strong id="kpi-revenue" class="kpi-value highlight-green">฿0.00</strong>
+              <span class="kpi-sub">Delivered & active</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-label">Total Orders</span>
+              <strong id="kpi-orders" class="kpi-value">0</strong>
+              <span class="kpi-sub">Completed orders</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-label">Avg Order Value</span>
+              <strong id="kpi-aov" class="kpi-value">฿0.00</strong>
+              <span class="kpi-sub">Per order (AOV)</span>
+            </div>
+          </div>
+
+          <!-- Category Breakdown Table / List -->
+          <div class="category-breakdown-section">
+            <h4 class="sub-heading">Sales by Product Category</h4>
+            <div id="category-breakdown-list" class="category-breakdown-list">
+              <!-- Rendered by JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Cloud Server Peak Traffic & Auto-Scaling -->
+        <div class="analytics-card">
+          <div class="analytics-card-header">
+            <h3>⚡ Server Peak Hours</h3>
+            <span class="report-badge cloud-badge">Cloud Scale</span>
+          </div>
+          <p class="section-desc">24-hour order volume distribution (00:00 - 23:00) for capacity planning.</p>
+
+          <!-- Auto-Scale Recommendation Box -->
+          <div id="autoscale-recommendation-box" class="recommendation-box">
+            <div class="rec-icon">🤖</div>
+            <div class="rec-content">
+              <strong>Auto-Scaling Capacity Target</strong>
+              <p id="autoscale-rec-text">Calculating optimal capacity...</p>
+            </div>
+          </div>
+
+          <!-- CSS Bar Chart (00:00 - 23:00) -->
+          <div class="chart-container">
+            <div class="chart-header">
+              <span class="chart-title">Hourly Traffic</span>
+              <div class="chart-legend">
+                <span class="legend-item"><span class="legend-color peak"></span> Peak</span>
+                <span class="legend-item"><span class="legend-color normal"></span> Normal</span>
+                <span class="legend-item"><span class="legend-color low"></span> Low</span>
+              </div>
+            </div>
+            <div id="hourly-bar-chart" class="hourly-bar-chart" aria-label="Hourly traffic chart">
+              <!-- 24 bars rendered by JS -->
+            </div>
+          </div>
+
+          <!-- Detailed Hourly Breakdown List / Accordion -->
+          <div class="hourly-table-wrap">
+            <div class="hourly-table-header">
+              <span>Hour</span>
+              <span>Orders</span>
+              <span>Traffic Level</span>
+            </div>
+            <div id="hourly-table-body" class="hourly-table-body">
+              <!-- Rendered by JS -->
+            </div>
+          </div>
         </div>
       </section>
     </main>
@@ -363,6 +479,125 @@
         </div>
       </div>
     </aside>
+
+    <!-- SIMPLIFIED EXTERNAL PAYMENT GATEWAY MODAL (Presentation Only) -->
+    <div id="payment-modal-backdrop" class="modal-backdrop hidden" aria-hidden="true"></div>
+    <div id="payment-modal" class="payment-modal hidden" role="dialog" aria-modal="true" aria-labelledby="payment-modal-title">
+      <div class="payment-modal-content">
+        <div class="payment-modal-header">
+          <div class="gateway-tag">⚡ Payment Gateway (Demo)</div>
+          <button id="close-payment-modal-btn" class="modal-close-btn" aria-label="Close payment modal">✕</button>
+        </div>
+
+        <!-- Mode 1: QR Payment (PromptPay) Mockup -->
+        <div id="payment-qr-section" class="gateway-body">
+          <div class="qr-slip-card">
+            <div class="qr-slip-header">
+              <div class="thai-qr-badge">THAI QR PAYMENT</div>
+              <div class="merchant-info">
+                <strong>X Mart Express 24/7</strong>
+                <span>PromptPay Biller ID: 0105561000000</span>
+              </div>
+            </div>
+
+            <div class="qr-code-box">
+              <!-- High-Fidelity PromptPay QR Mockup SVG -->
+              <div class="qr-frame">
+                <svg viewBox="0 0 200 200" class="qr-svg" width="160" height="160" aria-label="PromptPay QR Code">
+                  <rect width="200" height="200" fill="#ffffff" rx="10"/>
+                  <!-- Top-Left Target -->
+                  <rect x="20" y="20" width="46" height="46" fill="#003D6B" rx="4"/>
+                  <rect x="28" y="28" width="30" height="30" fill="#ffffff" rx="2"/>
+                  <rect x="34" y="34" width="18" height="18" fill="#003D6B" rx="2"/>
+
+                  <!-- Top-Right Target -->
+                  <rect x="134" y="20" width="46" height="46" fill="#003D6B" rx="4"/>
+                  <rect x="142" y="28" width="30" height="30" fill="#ffffff" rx="2"/>
+                  <rect x="148" y="34" width="18" height="18" fill="#003D6B" rx="2"/>
+
+                  <!-- Bottom-Left Target -->
+                  <rect x="20" y="134" width="46" height="46" fill="#003D6B" rx="4"/>
+                  <rect x="28" y="142" width="30" height="30" fill="#ffffff" rx="2"/>
+                  <rect x="34" y="148" width="18" height="18" fill="#003D6B" rx="2"/>
+
+                  <!-- Data Pattern Blocks -->
+                  <rect x="80" y="25" width="14" height="14" fill="#003D6B"/>
+                  <rect x="105" y="25" width="16" height="14" fill="#003D6B"/>
+                  <rect x="75" y="48" width="20" height="12" fill="#003D6B"/>
+                  <rect x="105" y="48" width="14" height="12" fill="#003D6B"/>
+                  <rect x="25" y="80" width="16" height="16" fill="#003D6B"/>
+                  <rect x="48" y="76" width="18" height="14" fill="#003D6B"/>
+                  <rect x="75" y="72" width="14" height="16" fill="#003D6B"/>
+                  <rect x="98" y="72" width="28" height="14" fill="#003D6B"/>
+                  <rect x="136" y="76" width="16" height="16" fill="#003D6B"/>
+                  <rect x="160" y="80" width="18" height="16" fill="#003D6B"/>
+                  <rect x="80" y="98" width="40" height="12" fill="#003D6B"/>
+                  <rect x="75" y="118" width="16" height="16" fill="#003D6B"/>
+                  <rect x="100" y="118" width="24" height="14" fill="#003D6B"/>
+                  <rect x="136" y="106" width="16" height="24" fill="#003D6B"/>
+                  <rect x="160" y="112" width="18" height="16" fill="#003D6B"/>
+                  <rect x="76" y="142" width="16" height="16" fill="#003D6B"/>
+                  <rect x="102" y="142" width="18" height="14" fill="#003D6B"/>
+                  <rect x="130" y="142" width="14" height="18" fill="#003D6B"/>
+                  <rect x="154" y="142" width="24" height="16" fill="#003D6B"/>
+                  <rect x="76" y="166" width="30" height="14" fill="#003D6B"/>
+                  <rect x="116" y="166" width="16" height="14" fill="#003D6B"/>
+                  <rect x="142" y="166" width="36" height="14" fill="#003D6B"/>
+
+                  <!-- Center Logo Badge -->
+                  <circle cx="100" cy="100" r="18" fill="#003D6B"/>
+                  <text x="100" y="105" font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle">XMART</text>
+                </svg>
+              </div>
+              <div class="qr-timer-pill">⏳ QR valid for: <span id="qr-timer-countdown">15:00</span></div>
+            </div>
+
+            <div class="qr-amount-row">
+              <span class="qr-amount-label">Payable Total:</span>
+              <strong id="qr-modal-amount" class="qr-amount-value">฿0.00</strong>
+            </div>
+            <p class="qr-instruction">Scan with any mobile banking app (K PLUS, SCB EASY, Krungthai NEXT, etc.)</p>
+          </div>
+
+          <div class="gateway-actions">
+            <button type="button" id="confirm-payment-completed-btn" class="btn btn-primary btn-block btn-lg">
+              ✓ Confirm Payment Completed
+            </button>
+            <button type="button" id="cancel-qr-modal-btn" class="btn btn-secondary btn-block btn-sm">
+              Back to Cart
+            </button>
+          </div>
+        </div>
+
+        <!-- Mode 2: Cash on Delivery Confirmation -->
+        <div id="payment-cash-section" class="gateway-body hidden">
+          <div class="cash-confirm-card">
+            <div class="cash-icon-large">💵</div>
+            <h3 id="payment-modal-title">Cash on Delivery</h3>
+            <p class="cash-lead">Please confirm your payable amount to be handed to the driver upon arrival.</p>
+
+            <div class="payable-highlight-box">
+              <span class="payable-label">Payable Amount upon Arrival:</span>
+              <strong id="cash-modal-amount" class="payable-amount">฿0.00</strong>
+              <span class="payable-sub">⚡ 15-Min Express Delivery • Free Shipping (฿0)</span>
+            </div>
+
+            <div class="cash-recipient-summary" id="cash-recipient-summary">
+              <!-- Summary populated by JS -->
+            </div>
+          </div>
+
+          <div class="gateway-actions">
+            <button type="button" id="confirm-cash-order-btn" class="btn btn-primary btn-block btn-lg">
+              ✓ Confirm & Place Order
+            </button>
+            <button type="button" id="cancel-cash-modal-btn" class="btn btn-secondary btn-block btn-sm">
+              Back to Edit Cart
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Toast Notifications -->
     <div id="toast-container" class="toast-container" aria-live="assertive"></div>

@@ -40,6 +40,21 @@ const elements = {
   viewCatalog: document.getElementById('view-catalog'),
   viewTracking: document.getElementById('view-tracking'),
   viewHistory: document.getElementById('view-history'),
+  viewAnalytics: document.getElementById('view-analytics'),
+
+  // Admin Analytics Controls
+  adminAnalyticsBtn: document.getElementById('admin-analytics-btn'),
+  analyticsCloseBtn: document.getElementById('analytics-close-btn'),
+  salesStartDate: document.getElementById('sales-start-date'),
+  salesEndDate: document.getElementById('sales-end-date'),
+  salesFilterApplyBtn: document.getElementById('sales-filter-apply-btn'),
+  kpiRevenue: document.getElementById('kpi-revenue'),
+  kpiOrders: document.getElementById('kpi-orders'),
+  kpiAov: document.getElementById('kpi-aov'),
+  categoryBreakdownList: document.getElementById('category-breakdown-list'),
+  autoscaleRecText: document.getElementById('autoscale-rec-text'),
+  hourlyBarChart: document.getElementById('hourly-bar-chart'),
+  hourlyTableBody: document.getElementById('hourly-table-body'),
 
   // Catalog
   searchInput: document.getElementById('search-input'),
@@ -70,6 +85,21 @@ const elements = {
   toggleGuestMode: document.getElementById('toggle-guest-mode'),
   toggleMemberMode: document.getElementById('toggle-member-mode'),
 
+  // Payment Gateway Modal
+  paymentModal: document.getElementById('payment-modal'),
+  paymentModalBackdrop: document.getElementById('payment-modal-backdrop'),
+  closePaymentModalBtn: document.getElementById('close-payment-modal-btn'),
+  paymentQrSection: document.getElementById('payment-qr-section'),
+  paymentCashSection: document.getElementById('payment-cash-section'),
+  qrModalAmount: document.getElementById('qr-modal-amount'),
+  cashModalAmount: document.getElementById('cash-modal-amount'),
+  cashRecipientSummary: document.getElementById('cash-recipient-summary'),
+  confirmPaymentCompletedBtn: document.getElementById('confirm-payment-completed-btn'),
+  cancelQrModalBtn: document.getElementById('cancel-qr-modal-btn'),
+  confirmCashOrderBtn: document.getElementById('confirm-cash-order-btn'),
+  cancelCashModalBtn: document.getElementById('cancel-cash-modal-btn'),
+  qrTimerCountdown: document.getElementById('qr-timer-countdown'),
+
   // Tracking
   trackOrderIdInput: document.getElementById('track-order-id-input'),
   trackLookupBtn: document.getElementById('track-lookup-btn'),
@@ -94,6 +124,7 @@ const elements = {
   trackTotal: document.getElementById('track-total'),
   cancelOrderBtn: document.getElementById('cancel-order-btn'),
   cancelNote: document.getElementById('cancel-note'),
+  simPending: document.getElementById('sim-pending'),
   simOutForDelivery: document.getElementById('sim-out-for-delivery'),
   simDelivered: document.getElementById('sim-delivered'),
   trackGotoCatalogBtn: document.getElementById('track-goto-catalog-btn'),
@@ -123,7 +154,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Check URL hash for direct routing
   const hash = window.location.hash.replace('#', '');
-  if (['catalog', 'tracking', 'history'].includes(hash)) {
+  if (['catalog', 'tracking', 'history', 'analytics'].includes(hash)) {
     switchView(hash);
   } else {
     switchView('catalog');
@@ -140,10 +171,27 @@ function initEventListeners() {
   elements.navHistory.addEventListener('click', () => switchView('history'));
   elements.brandLogo.addEventListener('click', () => switchView('catalog'));
 
+  // Admin Analytics Navigation
+  elements.adminAnalyticsBtn?.addEventListener('click', () => switchView('analytics'));
+  elements.analyticsCloseBtn?.addEventListener('click', () => switchView('catalog'));
+
+  // Sales Date Range Filter & Presets
+  elements.salesFilterApplyBtn?.addEventListener('click', () => {
+    loadSalesReport(elements.salesStartDate.value, elements.salesEndDate.value);
+  });
+
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+      applyDatePreset(e.currentTarget.dataset.preset);
+    });
+  });
+
   // Listen to browser hash changes (back/forward or deep links)
   window.addEventListener('hashchange', () => {
     const hash = window.location.hash.replace('#', '');
-    if (['catalog', 'tracking', 'history'].includes(hash) && hash !== state.activeView) {
+    if (['catalog', 'tracking', 'history', 'analytics'].includes(hash) && hash !== state.activeView) {
       switchView(hash);
     }
   });
@@ -198,9 +246,18 @@ function initEventListeners() {
   // Cancel Order Button
   elements.cancelOrderBtn.addEventListener('click', handleCancelOrder);
 
-  // Simulation Controls for Driver
-  elements.simOutForDelivery.addEventListener('click', () => simulateDriverStatus('OUT_FOR_DELIVERY'));
-  elements.simDelivered.addEventListener('click', () => simulateDriverStatus('DELIVERED'));
+  // Payment Gateway Modal Event Listeners
+  elements.closePaymentModalBtn?.addEventListener('click', closePaymentModal);
+  elements.paymentModalBackdrop?.addEventListener('click', closePaymentModal);
+  elements.cancelQrModalBtn?.addEventListener('click', closePaymentModal);
+  elements.cancelCashModalBtn?.addEventListener('click', closePaymentModal);
+  elements.confirmPaymentCompletedBtn?.addEventListener('click', finalizeOrderPlacement);
+  elements.confirmCashOrderBtn?.addEventListener('click', finalizeOrderPlacement);
+
+  // Simulation Controls for Status Transitions (Pending -> Out for Delivery -> Delivered)
+  elements.simPending?.addEventListener('click', () => simulateDriverStatus('PENDING'));
+  elements.simOutForDelivery?.addEventListener('click', () => simulateDriverStatus('OUT_FOR_DELIVERY'));
+  elements.simDelivered?.addEventListener('click', () => simulateDriverStatus('DELIVERED'));
 }
 
 // =========================================================
@@ -214,14 +271,18 @@ function switchView(viewName) {
   elements.viewCatalog.classList.toggle('hidden', viewName !== 'catalog');
   elements.viewTracking.classList.toggle('hidden', viewName !== 'tracking');
   elements.viewHistory.classList.toggle('hidden', viewName !== 'history');
+  elements.viewAnalytics.classList.toggle('hidden', viewName !== 'analytics');
 
   // Update nav item highlights
   elements.navCatalog.classList.toggle('active', viewName === 'catalog');
   elements.navTracking.classList.toggle('active', viewName === 'tracking');
   elements.navHistory.classList.toggle('active', viewName === 'history');
+  elements.adminAnalyticsBtn?.classList.toggle('active', viewName === 'analytics');
 
   if (viewName === 'history') {
     loadMemberHistory();
+  } else if (viewName === 'analytics') {
+    loadAnalyticsDashboard();
   }
 
   // Scroll to top
@@ -375,7 +436,49 @@ function getAvatarColor(name) {
   return FALLBACK_PALETTE[index];
 }
 
+function generatePriceForKeyword(keyword) {
+  if (!keyword) return 29.00;
+  let hash = 0;
+  for (let i = 0; i < keyword.length; i++) {
+    hash = keyword.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  // Generates reasonable convenience store price between 20 and 50 THB
+  const base = 20 + (Math.abs(hash) % 31);
+  return Number(base.toFixed(2));
+}
+
+function createDynamicProduct(keyword) {
+  const cleanKeyword = keyword.trim();
+  const price = generatePriceForKeyword(cleanKeyword);
+  const encodedKeyword = encodeURIComponent(cleanKeyword);
+  return {
+    id: `dyn_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+    name: cleanKeyword,
+    category_id: 999,
+    category_name: 'On-Demand Goods',
+    price: price,
+    icon: '✨',
+    image_url: `https://loremflickr.com/300/300/${encodedKeyword}`,
+    description: 'Instant on-demand convenience item • Freshly prepared for delivery',
+    is_dynamic: true
+  };
+}
+
 function renderProductIconHtml(product, sizeClass = '') {
+  if (product.image_url) {
+    return `
+      <div class="product-icon-box product-img-box ${sizeClass}">
+        <img 
+          src="${escapeHtml(product.image_url)}" 
+          alt="${escapeHtml(product.name)}" 
+          class="product-thumb-img" 
+          loading="lazy" 
+          onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';"
+        />
+        <div class="fallback-avatar hidden" style="background-color: ${getAvatarColor(product.name)};">✨</div>
+      </div>
+    `;
+  }
   if (product.icon && String(product.icon).trim()) {
     return `<div class="product-icon-box ${sizeClass}" aria-hidden="true">${escapeHtml(product.icon)}</div>`;
   }
@@ -385,57 +488,105 @@ function renderProductIconHtml(product, sizeClass = '') {
   return `<div class="product-icon-box fallback-avatar ${sizeClass}" style="background-color: ${bgColor};" aria-hidden="true">${escapeHtml(firstLetter)}</div>`;
 }
 
+function renderProductRowElement(prod, isDynamic = false) {
+  const itemRow = document.createElement('article');
+  itemRow.className = `product-list-row ${isDynamic ? 'dynamic-product-card' : ''}`;
+  itemRow.id = `product-row-${prod.id}`;
+
+  const iconHtml = renderProductIconHtml(prod);
+
+  itemRow.innerHTML = `
+    <div class="product-icon-wrap">
+      ${iconHtml}
+    </div>
+    <div class="product-info-col">
+      <div class="product-row-title-wrap">
+        <h3 class="product-row-title" title="${escapeHtml(prod.name)}">${escapeHtml(prod.name)}</h3>
+        ${isDynamic ? '<span class="dynamic-badge">⚡ On-Demand</span>' : ''}
+      </div>
+      <div class="product-row-sub">
+        <span class="product-cat-pill">${escapeHtml(prod.category_name)}</span>
+        ${prod.description ? `<span class="product-desc-snippet">${escapeHtml(prod.description)}</span>` : ''}
+      </div>
+    </div>
+    <div class="product-action-col">
+      <span class="product-row-price">฿${prod.price.toFixed(2)}</span>
+      <button class="btn-add-quick" data-id="${prod.id}" aria-label="Add ${escapeHtml(prod.name)} to cart">
+        + Add
+      </button>
+    </div>
+  `;
+
+  const addBtn = itemRow.querySelector('.btn-add-quick');
+  addBtn.addEventListener('click', () => {
+    addToCart(prod);
+  });
+
+  return itemRow;
+}
+
 function renderProductsGrid() {
   const count = state.products.length;
-  elements.catalogCountText.textContent = `${count} item${count === 1 ? '' : 's'} available`;
-  elements.catalogFilterBadge.classList.toggle('hidden', state.currentCategoryId === 'all' && !state.searchQuery);
+  const query = state.searchQuery.trim();
+  elements.catalogFilterBadge.classList.toggle('hidden', state.currentCategoryId === 'all' && !query);
 
+  // Requirement 1: "Find Everything"
+  // If item does NOT exist in local seed database, dynamically generate a temporary product card on the fly!
   if (count === 0) {
+    if (query) {
+      const dynProd = createDynamicProduct(query);
+      elements.catalogCountText.textContent = `1 On-Demand Item for "${query}"`;
+      elements.productsGrid.innerHTML = `
+        <div class="on-demand-notice-bar">
+          <span class="sparkle-icon">✨</span>
+          <div class="notice-text">
+            <strong>Custom Item Generated on the Fly!</strong>
+            <span>Not in standard seed inventory? We deliver anything 24/7.</span>
+          </div>
+        </div>
+      `;
+      const dynRow = renderProductRowElement(dynProd, true);
+      elements.productsGrid.appendChild(dynRow);
+      return;
+    }
+
+    elements.catalogCountText.textContent = '0 items found';
     elements.productsGrid.innerHTML = `
       <div class="empty-state">
         <div class="empty-icon">🔍</div>
         <h3>No matching items</h3>
-        <p>Try searching for something else like "tea", "chips", or "ramen".</p>
+        <p>Try searching for anything (e.g., "มาม่า", "น้ำดื่ม", "สบู่") to order on-demand!</p>
       </div>
     `;
     return;
   }
 
+  elements.catalogCountText.textContent = `${count} item${count === 1 ? '' : 's'} available`;
   elements.productsGrid.innerHTML = '';
 
+  // Render matched seed items
   state.products.forEach(prod => {
-    const itemRow = document.createElement('article');
-    itemRow.className = 'product-list-row';
-    itemRow.id = `product-row-${prod.id}`;
-
-    const iconHtml = renderProductIconHtml(prod);
-
-    itemRow.innerHTML = `
-      <div class="product-icon-wrap">
-        ${iconHtml}
-      </div>
-      <div class="product-info-col">
-        <h3 class="product-row-title" title="${escapeHtml(prod.name)}">${escapeHtml(prod.name)}</h3>
-        <div class="product-row-sub">
-          <span class="product-cat-pill">${escapeHtml(prod.category_name)}</span>
-          ${prod.description ? `<span class="product-desc-snippet">${escapeHtml(prod.description)}</span>` : ''}
-        </div>
-      </div>
-      <div class="product-action-col">
-        <span class="product-row-price">฿${prod.price.toFixed(2)}</span>
-        <button class="btn-add-quick" data-id="${prod.id}" aria-label="Add ${escapeHtml(prod.name)} to cart">
-          + Add
-        </button>
-      </div>
-    `;
-
-    const addBtn = itemRow.querySelector('.btn-add-quick');
-    addBtn.addEventListener('click', () => {
-      addToCart(prod);
-    });
-
+    const itemRow = renderProductRowElement(prod, false);
     elements.productsGrid.appendChild(itemRow);
   });
+
+  // If user searched for something, also offer on-demand button at bottom
+  if (query && !state.products.some(p => p.name.toLowerCase() === query.toLowerCase())) {
+    const dynProd = createDynamicProduct(query);
+    const customPrompt = document.createElement('div');
+    customPrompt.className = 'custom-request-footer';
+    customPrompt.innerHTML = `
+      <div class="custom-prompt-text">
+        <span>Can't find exact brand?</span>
+        <strong>Order custom "${escapeHtml(query)}" on demand (฿${dynProd.price.toFixed(2)})</strong>
+      </div>
+      <button class="btn btn-sm btn-outline btn-custom-add">+ Add Custom</button>
+    `;
+    customPrompt.querySelector('.btn-custom-add').addEventListener('click', () => {
+      addToCart(dynProd);
+    });
+    elements.productsGrid.appendChild(customPrompt);
+  }
 }
 
 // =========================================================
@@ -564,9 +715,11 @@ function closeCartDrawer() {
 }
 
 // =========================================================
-// Checkout & Order Placement
+// Checkout & Payment Gateway Modal Flow (Presentation Only)
 // =========================================================
-async function handleCheckoutSubmit(e) {
+let paymentTimerInterval = null;
+
+function handleCheckoutSubmit(e) {
   e.preventDefault();
 
   if (state.cart.length === 0) {
@@ -578,23 +731,122 @@ async function handleCheckoutSubmit(e) {
   const customerPhone = elements.custPhone.value.trim();
   const deliveryAddress = elements.custAddress.value.trim();
 
+  if (customerName.length < 2) {
+    showToast('Recipient name must be at least 2 characters.', 'error');
+    return;
+  }
+  if (customerPhone.length < 6) {
+    showToast('Phone number must be at least 6 digits.', 'error');
+    return;
+  }
+  if (deliveryAddress.length < 5) {
+    showToast('Delivery address must be at least 5 characters.', 'error');
+    return;
+  }
+
   const paymentMethodInput = document.querySelector('input[name="payment_method"]:checked');
   const paymentMethod = paymentMethodInput ? paymentMethodInput.value : 'CASH';
 
-  const submitBtn = document.getElementById('place-order-btn');
-  submitBtn.disabled = true;
-  submitBtn.textContent = 'Processing Order...';
+  const subtotal = state.cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+
+  state.pendingCheckout = {
+    customerName,
+    customerPhone,
+    deliveryAddress,
+    paymentMethod,
+    subtotal: Math.round(subtotal * 100) / 100,
+    items: state.cart.map(item => ({
+      product_id: typeof item.product.id === 'number' && item.product.id > 0 ? item.product.id : 0,
+      name: item.product.name,
+      unit_price: item.product.price,
+      quantity: item.quantity,
+      icon: item.product.icon || '✨',
+      description: item.product.description || ''
+    }))
+  };
+
+  // Requirement 2: Simplified External Payment Gateway (Presentation Only)
+  openPaymentModal(paymentMethod, subtotal);
+}
+
+function openPaymentModal(paymentMethod, subtotal) {
+  const formattedAmount = `฿${subtotal.toFixed(2)}`;
+
+  if (paymentMethod === 'QR') {
+    elements.paymentQrSection.classList.remove('hidden');
+    elements.paymentCashSection.classList.add('hidden');
+    elements.qrModalAmount.textContent = formattedAmount;
+
+    // Reset and start 15:00 QR expiry timer
+    let secondsLeft = 15 * 60;
+    clearInterval(paymentTimerInterval);
+    elements.qrTimerCountdown.textContent = '15:00';
+    paymentTimerInterval = setInterval(() => {
+      secondsLeft--;
+      if (secondsLeft <= 0) {
+        clearInterval(paymentTimerInterval);
+        elements.qrTimerCountdown.textContent = 'Expired';
+      } else {
+        const m = Math.floor(secondsLeft / 60);
+        const s = secondsLeft % 60;
+        elements.qrTimerCountdown.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      }
+    }, 1000);
+  } else {
+    elements.paymentCashSection.classList.remove('hidden');
+    elements.paymentQrSection.classList.add('hidden');
+    elements.cashModalAmount.textContent = formattedAmount;
+
+    elements.cashRecipientSummary.innerHTML = `
+      <div class="summary-line">
+        <span>Recipient:</span>
+        <strong>${escapeHtml(state.pendingCheckout.customerName)} (${escapeHtml(state.pendingCheckout.customerPhone)})</strong>
+      </div>
+      <div class="summary-line">
+        <span>Deliver to:</span>
+        <span>${escapeHtml(state.pendingCheckout.deliveryAddress)}</span>
+      </div>
+    `;
+  }
+
+  elements.paymentModal.classList.remove('hidden');
+  elements.paymentModalBackdrop.classList.remove('hidden');
+}
+
+function closePaymentModal() {
+  clearInterval(paymentTimerInterval);
+  elements.paymentModal.classList.add('hidden');
+  elements.paymentModalBackdrop.classList.add('hidden');
+}
+
+async function finalizeOrderPlacement() {
+  if (!state.pendingCheckout) return;
+
+  const isQr = state.pendingCheckout.paymentMethod === 'QR';
+  const triggerBtn = isQr ? elements.confirmPaymentCompletedBtn : elements.confirmCashOrderBtn;
+  triggerBtn.disabled = true;
+  const originalText = triggerBtn.textContent;
+  triggerBtn.textContent = 'Processing Dispatch...';
+
+  // Requirement 3: Trigger mock external dispatch call (log to console)
+  console.log(`[EXTERNAL DISPATCH] Triggering mock logistics dispatch API for ${state.pendingCheckout.customerName}:`, {
+    recipient: state.pendingCheckout.customerName,
+    phone: state.pendingCheckout.customerPhone,
+    address: state.pendingCheckout.deliveryAddress,
+    payment_method: state.pendingCheckout.paymentMethod,
+    total_amount: state.pendingCheckout.subtotal,
+    carrier: 'X-Speed 15-Minute Convenience Courier',
+    timestamp: new Date().toISOString()
+  });
 
   const orderPayload = {
     user_id: state.userMode === 'member' ? state.memberProfile.id : null,
-    customer_name: customerName,
-    customer_phone: customerPhone,
-    delivery_address: deliveryAddress,
-    payment_method: paymentMethod,
-    items: state.cart.map(item => ({
-      product_id: item.product.id,
-      quantity: item.quantity
-    }))
+    customer_name: state.pendingCheckout.customerName,
+    customer_phone: state.pendingCheckout.customerPhone,
+    delivery_address: state.pendingCheckout.deliveryAddress,
+    payment_method: state.pendingCheckout.paymentMethod,
+    status: 'PENDING',
+    items: state.pendingCheckout.items
   };
 
   try {
@@ -607,16 +859,19 @@ async function handleCheckoutSubmit(e) {
     const data = await res.json();
 
     if (res.status === 201 && data.success) {
+      closePaymentModal();
+      closeCartDrawer();
+
       // Clear Cart
       state.cart = [];
+      state.pendingCheckout = null;
       saveCart();
       updateCartUI();
-      closeCartDrawer();
 
       const newOrder = data.data;
       state.currentOrderId = newOrder.id;
 
-      showToast(`Order #${newOrder.id} placed! Driver dispatched.`, 'success');
+      showToast(`Order #${newOrder.id} placed! Mock external courier dispatched.`, 'success');
 
       // Switch to tracking view and load order details
       switchView('tracking');
@@ -628,9 +883,8 @@ async function handleCheckoutSubmit(e) {
     console.error('Checkout error:', err);
     showToast('Network error during checkout.', 'error');
   } finally {
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = `Place Order • <span id="btn-total-amount">฿0.00</span>`;
-    updateCartUI();
+    triggerBtn.disabled = false;
+    triggerBtn.textContent = originalText;
   }
 }
 
@@ -666,31 +920,44 @@ function renderTrackingDetails(order) {
   elements.trackDeliveryAddress.textContent = order.delivery_address;
   elements.trackPaymentMethod.textContent = order.payment_method;
 
-  // Driver details
+  // Requirement 3: Driver Info - Mock driver name and clickable phone number (tel:089xxxxxxx)
   const driverName = (order.driver && order.driver.name) || order.driver_name || 'Somchai Express';
-  const driverPhone = (order.driver && order.driver.phone) || order.driver_phone || '+66-81-234-5678';
+  let driverPhone = (order.driver && order.driver.phone) || order.driver_phone || '089-123-4567';
+  // Ensure 089 format
+  if (!driverPhone.startsWith('089')) {
+    driverPhone = '089-123-4567';
+  }
 
   elements.trackDriverName.textContent = driverName;
   elements.trackDriverPhone.textContent = driverPhone;
-  elements.trackDriverPhoneLink.href = `tel:${driverPhone}`;
+  const digitsOnlyPhone = driverPhone.replace(/[^0-9]/g, '');
+  elements.trackDriverPhoneLink.href = `tel:${digitsOnlyPhone}`;
 
   // Status Badge
   const status = order.status;
   elements.trackStatusPill.textContent = status;
   elements.trackStatusPill.className = `status-pill status-${status.toLowerCase().replace(/_/g, '-')}`;
 
-  // Stepper Visual State
+  // Requirement 3: Stepper Visual State
+  // Pending -> Out for Delivery -> Delivered
   const isDelivered = status === 'DELIVERED';
-  const isOut = status === 'OUT_FOR_DELIVERY' || isDelivered;
+  const isOut = status === 'OUT_FOR_DELIVERY';
+  const isPending = status === 'PENDING';
   const isCancelled = status === 'CANCELLED';
 
-  elements.stepOrdered.classList.toggle('active', !isCancelled);
-  elements.stepOut.classList.toggle('active', isOut && !isCancelled);
-  elements.stepDelivered.classList.toggle('active', isDelivered);
-  elements.line1.classList.toggle('active', isOut && !isCancelled);
-  elements.line2.classList.toggle('active', isDelivered);
+  elements.stepOrdered.classList.toggle('active', !isCancelled && (isPending || isOut || isDelivered));
+  elements.stepOut.classList.toggle('active', !isCancelled && (isOut || isDelivered));
+  elements.stepDelivered.classList.toggle('active', !isCancelled && isDelivered);
+  elements.line1.classList.toggle('active', !isCancelled && (isOut || isDelivered));
+  elements.line2.classList.toggle('active', !isCancelled && isDelivered);
 
-  // Cancellation Button State
+  // Update simulation buttons state
+  elements.simPending?.classList.toggle('active-sim', isPending);
+  elements.simOutForDelivery?.classList.toggle('active-sim', isOut);
+  elements.simDelivered?.classList.toggle('active-sim', isDelivered);
+
+  // Requirement 3: Cancellation Button State
+  // Cancel button remains active until status becomes "Delivered"
   if (isDelivered) {
     elements.cancelOrderBtn.disabled = true;
     elements.cancelOrderBtn.textContent = 'Order Delivered (Cannot Cancel)';
@@ -700,6 +967,7 @@ function renderTrackingDetails(order) {
     elements.cancelOrderBtn.textContent = 'Order Cancelled';
     elements.cancelNote.textContent = 'This order was cancelled.';
   } else {
+    // Both PENDING and OUT_FOR_DELIVERY allow cancellation
     elements.cancelOrderBtn.disabled = false;
     elements.cancelOrderBtn.textContent = '✕ Cancel Order';
     elements.cancelNote.textContent = 'Cancellation is permitted until the courier marks the order as Delivered.';
@@ -752,7 +1020,7 @@ async function handleCancelOrder() {
   }
 }
 
-// Staff / Driver Simulation Function
+// Staff / Driver Simulation Function for Status Transitions
 async function simulateDriverStatus(newStatus) {
   if (!state.trackedOrder) {
     showToast('No active order selected to update status.', 'error');
@@ -770,7 +1038,7 @@ async function simulateDriverStatus(newStatus) {
 
     const data = await res.json();
     if (res.ok && data.success) {
-      showToast(`Driver status transitioned to ${newStatus}`, 'success');
+      showToast(`Status transitioned to: ${newStatus}`, 'success');
       loadOrderDetails(orderId);
     } else {
       showToast(data.error || 'Failed to update status', 'error');
@@ -875,3 +1143,176 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 }
+
+// =========================================================
+// Admin Analytics & Server Peak Hours Reporting Logic
+// =========================================================
+function applyDatePreset(preset) {
+  const now = new Date();
+  const endDateStr = now.toISOString().slice(0, 10);
+  let startDateStr = endDateStr;
+
+  if (preset === 'today') {
+    startDateStr = endDateStr;
+  } else if (preset === '7d') {
+    const d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    startDateStr = d.toISOString().slice(0, 10);
+  } else if (preset === '30d') {
+    const d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    startDateStr = d.toISOString().slice(0, 10);
+  }
+
+  if (elements.salesStartDate) elements.salesStartDate.value = startDateStr;
+  if (elements.salesEndDate) elements.salesEndDate.value = endDateStr;
+  loadSalesReport(startDateStr, endDateStr);
+}
+
+async function loadAnalyticsDashboard() {
+  const start = elements.salesStartDate?.value;
+  const end = elements.salesEndDate?.value;
+
+  if (!start || !end) {
+    applyDatePreset('30d');
+  } else {
+    loadSalesReport(start, end);
+  }
+  loadPeakHoursReport();
+}
+
+async function loadSalesReport(startDate, endDate) {
+  if (elements.categoryBreakdownList) {
+    elements.categoryBreakdownList.innerHTML = `
+      <div class="skeleton-card" style="height: 50px; margin-bottom: 6px;"></div>
+      <div class="skeleton-card" style="height: 50px;"></div>
+    `;
+  }
+
+  try {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+
+    const res = await fetch(`/api/admin/reports/sales?${params.toString()}`);
+    const data = await res.json();
+
+    if (data.success) {
+      const summary = data.summary || {};
+      const rev = Number(summary.total_revenue || 0);
+      const aov = Number(summary.average_order_value || 0);
+      const orders = Number(summary.total_orders || 0);
+
+      if (elements.kpiRevenue) {
+        elements.kpiRevenue.textContent = `฿${rev.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      }
+      if (elements.kpiOrders) {
+        elements.kpiOrders.textContent = orders.toLocaleString();
+      }
+      if (elements.kpiAov) {
+        elements.kpiAov.textContent = `฿${aov.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      }
+
+      renderCategoryBreakdown(data.category_breakdown, rev);
+    } else {
+      showToast(data.error || 'Failed to load sales report', 'error');
+    }
+  } catch (err) {
+    console.error('Sales report error:', err);
+    showToast('Failed to fetch sales analytics', 'error');
+  }
+}
+
+function renderCategoryBreakdown(categories, totalRevenue) {
+  if (!elements.categoryBreakdownList) return;
+  elements.categoryBreakdownList.innerHTML = '';
+
+  if (!Array.isArray(categories) || categories.length === 0) {
+    elements.categoryBreakdownList.innerHTML = `<p class="help-text">No category data for this period.</p>`;
+    return;
+  }
+
+  categories.forEach(cat => {
+    const row = document.createElement('div');
+    row.className = 'category-row';
+    const percentNum = parseFloat(cat.percentage_of_sales) || 0;
+
+    row.innerHTML = `
+      <div class="cat-row-header">
+        <strong class="cat-name">${escapeHtml(cat.category_name)}</strong>
+        <span class="cat-revenue">฿${Number(cat.category_revenue).toFixed(2)}</span>
+      </div>
+      <div class="cat-progress-bar-wrap">
+        <div class="cat-progress-bar" style="width: ${Math.min(100, Math.max(percentNum, totalRevenue > 0 ? 3 : 0))}%;"></div>
+      </div>
+      <div class="cat-row-footer">
+        <span>${cat.units_sold} units sold</span>
+        <span class="cat-percent">${escapeHtml(cat.percentage_of_sales)}</span>
+      </div>
+    `;
+    elements.categoryBreakdownList.appendChild(row);
+  });
+}
+
+async function loadPeakHoursReport() {
+  if (elements.hourlyBarChart) {
+    elements.hourlyBarChart.innerHTML = `
+      <div class="skeleton-card" style="height: 100px; width: 100%;"></div>
+    `;
+  }
+
+  try {
+    const res = await fetch('/api/admin/reports/peak-hours');
+    const data = await res.json();
+
+    if (data.success && Array.isArray(data.data)) {
+      if (elements.autoscaleRecText && data.recommendations) {
+        elements.autoscaleRecText.textContent = data.recommendations.auto_scale_up_target || 'Optimal replica baseline maintained.';
+      }
+
+      renderPeakHoursChart(data.data, data.busiest_hour_order_count || 1);
+      renderHourlyTable(data.data);
+    } else {
+      showToast(data.error || 'Failed to load peak hours report', 'error');
+    }
+  } catch (err) {
+    console.error('Peak hours report error:', err);
+    showToast('Failed to fetch peak hours data', 'error');
+  }
+}
+
+function renderPeakHoursChart(hoursData, maxCount) {
+  if (!elements.hourlyBarChart) return;
+  elements.hourlyBarChart.innerHTML = '';
+  const safeMax = Math.max(maxCount || 1, 1);
+
+  hoursData.forEach(h => {
+    const col = document.createElement('div');
+    col.className = `bar-col level-${h.traffic_level.toLowerCase()}`;
+    const heightPercent = h.order_count > 0 ? Math.max(Math.round((h.order_count / safeMax) * 100), 12) : 4;
+
+    col.innerHTML = `
+      <div class="bar-fill-wrap" title="${h.hour}: ${h.order_count} orders (${h.traffic_level})">
+        <span class="bar-value-label">${h.order_count > 0 ? h.order_count : ''}</span>
+        <div class="bar-fill" style="height: ${heightPercent}%;"></div>
+      </div>
+      <span class="bar-hour-label">${h.hour_number % 4 === 0 ? h.hour_number : ''}</span>
+    `;
+    elements.hourlyBarChart.appendChild(col);
+  });
+}
+
+function renderHourlyTable(hoursData) {
+  if (!elements.hourlyTableBody) return;
+  elements.hourlyTableBody.innerHTML = '';
+
+  hoursData.forEach(h => {
+    const row = document.createElement('div');
+    row.className = `hourly-table-row level-${h.traffic_level.toLowerCase()}`;
+    row.innerHTML = `
+      <span class="hour-time"><strong>${h.hour}</strong></span>
+      <span class="hour-count">${h.order_count} orders (${h.percentage})</span>
+      <span class="traffic-badge badge-${h.traffic_level.toLowerCase()}">${h.traffic_level}</span>
+    `;
+    elements.hourlyTableBody.appendChild(row);
+  });
+}
+
