@@ -1,21 +1,24 @@
 # =========================================================
 # X Mart Convenience Store - Production Dockerfile
-# Optimized multi-stage build with native SQLite compilation
+# Multi-stage build with Debian glibc for better-sqlite3 compatibility
+# Resolves musl libc Segmentation Fault (exit code 139) on Alpine
 # =========================================================
 
 # Stage 1: Build & Native Dependencies
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
-# Install build dependencies for better-sqlite3 native addon
-RUN apk add --no-cache python3 make g++
+# Install build dependencies for better-sqlite3 C++ native addon compilation (glibc)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends python3 make g++ && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
 RUN npm ci --omit=dev
 
 # Stage 2: Production Runner
-FROM node:20-alpine AS runner
+FROM node:20-slim AS runner
 
 WORKDIR /app
 
@@ -25,7 +28,7 @@ ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     DATA_DIR=/data
 
-# Create persistent data volume directory
+# Create persistent data volume directory with ownership for non-root node user
 RUN mkdir -p /data && chown -R node:node /data
 
 # Copy production dependencies and application sources

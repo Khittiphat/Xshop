@@ -1,10 +1,9 @@
 services:
   - type: web
     name: xmart-app
-    env: node
+    env: docker
     plan: starter
-    buildCommand: npm ci --omit=dev
-    startCommand: npm start
+    dockerfilePath: Dockerfile
     healthCheckPath: /api/health
     disk:
       name: xmart-disk
