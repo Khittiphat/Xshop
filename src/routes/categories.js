@@ -7,9 +7,9 @@ const router = Router();
  * GET /api/categories
  * Returns all available categories sorted by id
  */
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const categories = db.prepare(`
+    const categories = await db.prepare(`
       SELECT 
         c.id, 
         c.name,

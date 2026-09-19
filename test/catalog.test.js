@@ -5,9 +5,9 @@ import app from '../src/app.js';
 import { seedDatabase } from '../src/database/seed.js';
 
 describe('X Mart Product Catalog API Endpoints', () => {
-  before(() => {
+  before(async () => {
     // Ensure the database is seeded before running tests
-    seedDatabase();
+    await seedDatabase();
   });
 
   describe('GET /api/categories', () => {

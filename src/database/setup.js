@@ -5,9 +5,9 @@ import { verifyDatabase } from './verify.js';
 console.log('[SETUP] Running database setup pipeline (Init -> Seed -> Verify)...\n');
 
 try {
-  initDatabase();
-  seedDatabase();
-  const ok = verifyDatabase();
+  await initDatabase();
+  await seedDatabase();
+  const ok = await verifyDatabase();
   if (!ok) {
     process.exit(1);
   }

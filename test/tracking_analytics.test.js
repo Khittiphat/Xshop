@@ -8,9 +8,9 @@ import { seedDatabase } from '../src/database/seed.js';
 describe('X Mart Order Tracking, Cancellation, and Analytics Reports', () => {
   let sampleProduct;
 
-  before(() => {
-    seedDatabase();
-    sampleProduct = db.prepare('SELECT id, name, price FROM products LIMIT 1').get();
+  before(async () => {
+    await seedDatabase();
+    sampleProduct = await db.prepare('SELECT id, name, price FROM products LIMIT 1').get();
     assert.ok(sampleProduct, 'Sample product must exist');
   });
 
@@ -41,7 +41,7 @@ describe('X Mart Order Tracking, Cancellation, and Analytics Reports', () => {
       assert.equal(cancelRes.body.data.previous_status, 'OUT_FOR_DELIVERY');
 
       // Verify in database
-      const updatedInDb = db.prepare('SELECT status FROM orders WHERE id = ?').get(orderId);
+      const updatedInDb = await db.prepare('SELECT status FROM orders WHERE id = ?').get(orderId);
       assert.equal(updatedInDb.status, 'CANCELLED');
     });
 

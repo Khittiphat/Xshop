@@ -11,11 +11,11 @@ describe('X Mart Order & Checkout API Endpoints (Business Rules)', () => {
   let sampleProduct2;
   let registeredUser;
 
-  before(() => {
-    seedDatabase();
-    sampleProduct1 = db.prepare('SELECT id, name, price FROM products LIMIT 1').get();
-    sampleProduct2 = db.prepare('SELECT id, name, price FROM products LIMIT 1 OFFSET 1').get();
-    registeredUser = db.prepare("SELECT id, name, email FROM users WHERE role = 'customer' LIMIT 1").get();
+  before(async () => {
+    await seedDatabase();
+    sampleProduct1 = await db.prepare('SELECT id, name, price FROM products LIMIT 1').get();
+    sampleProduct2 = await db.prepare('SELECT id, name, price FROM products LIMIT 1 OFFSET 1').get();
+    registeredUser = await db.prepare("SELECT id, name, email FROM users WHERE role = 'customer' LIMIT 1").get();
     assert.ok(sampleProduct1, 'Sample product 1 must exist');
     assert.ok(sampleProduct2, 'Sample product 2 must exist');
     assert.ok(registeredUser, 'Registered customer must exist');

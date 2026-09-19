@@ -2,13 +2,13 @@ import db from './db.js';
 import { initDatabase } from './init.js';
 import { fileURLToPath } from 'node:url';
 
-export function seedDatabase() {
+export async function seedDatabase() {
   console.log('[DB SEED] Starting database seeding...');
 
   // Ensure tables exist
-  initDatabase();
+  await initDatabase();
 
-  const seedTransaction = db.transaction(() => {
+  const seedTransaction = db.transaction(async () => {
     // 1. Seed Categories
     const categories = [
       { name: 'Snacks' },
@@ -23,11 +23,11 @@ export function seedDatabase() {
     `);
 
     for (const cat of categories) {
-      insertCategory.run(cat);
+      await insertCategory.run(cat);
     }
 
     // Retrieve category IDs
-    const categoryRows = db.prepare('SELECT id, name FROM categories').all();
+    const categoryRows = await db.prepare('SELECT id, name FROM categories').all();
     const catMap = Object.fromEntries(categoryRows.map(c => [c.name, c.id]));
 
     // 2. Seed Products (15+ realistic convenience store products with emoji icons)
@@ -174,9 +174,9 @@ export function seedDatabase() {
     `);
 
     for (const prod of products) {
-      const res = updateProduct.run(prod);
+      const res = await updateProduct.run(prod);
       if (res.changes === 0) {
-        insertProduct.run(prod);
+        await insertProduct.run(prod);
       }
     }
 
@@ -211,14 +211,14 @@ export function seedDatabase() {
     `);
 
     for (const u of users) {
-      insertUser.run(u);
+      await insertUser.run(u);
     }
 
     // 4. Seed Sample Orders and Items (demonstrating guest & customer checkout)
-    const existingOrdersCount = db.prepare('SELECT COUNT(*) as count FROM orders').get().count;
+    const existingOrdersCount = (await db.prepare('SELECT COUNT(*) as count FROM orders').get()).count;
     if (existingOrdersCount === 0) {
-      const customer = db.prepare('SELECT id FROM users WHERE email = ?').get('john.doe@example.com');
-      const allProducts = db.prepare('SELECT id, price FROM products LIMIT 5').all();
+      const customer = await db.prepare('SELECT id FROM users WHERE email = ?').get('john.doe@example.com');
+      const allProducts = await db.prepare('SELECT id, price FROM products LIMIT 5').all();
 
       if (allProducts.length >= 4) {
         // Order 1: Registered Customer Order
@@ -230,7 +230,7 @@ export function seedDatabase() {
         `);
 
         const order1Total = (allProducts[0].price * 2) + (allProducts[1].price * 1);
-        const order1Result = order1Stmt.run(
+        const order1Result = await order1Stmt.run(
           customer ? customer.id : null,
           'John Doe',
           '+1-555-0144',
@@ -247,12 +247,12 @@ export function seedDatabase() {
           VALUES (?, ?, ?, ?)
         `);
 
-        insertItem.run(order1Result.lastInsertRowid, allProducts[0].id, 2, allProducts[0].price);
-        insertItem.run(order1Result.lastInsertRowid, allProducts[1].id, 1, allProducts[1].price);
+        await insertItem.run(order1Result.lastInsertRowid, allProducts[0].id, 2, allProducts[0].price);
+        await insertItem.run(order1Result.lastInsertRowid, allProducts[1].id, 1, allProducts[1].price);
 
         // Order 2: Guest Checkout Order
         const order2Total = (allProducts[2].price * 1) + (allProducts[3].price * 2);
-        const order2Result = order1Stmt.run(
+        const order2Result = await order1Stmt.run(
           null, // Guest user (no account)
           'Sarah Connor (Guest)',
           '+1-555-0177',
@@ -264,20 +264,20 @@ export function seedDatabase() {
           '+1-555-0199'
         );
 
-        insertItem.run(order2Result.lastInsertRowid, allProducts[2].id, 1, allProducts[2].price);
-        insertItem.run(order2Result.lastInsertRowid, allProducts[3].id, 2, allProducts[3].price);
+        await insertItem.run(order2Result.lastInsertRowid, allProducts[2].id, 1, allProducts[2].price);
+        await insertItem.run(order2Result.lastInsertRowid, allProducts[3].id, 2, allProducts[3].price);
       }
     }
   });
 
-  seedTransaction();
+  await seedTransaction();
   console.log('[DB SEED] Sample data populated successfully.');
 }
 
 // Run directly if invoked from CLI
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   try {
-    seedDatabase();
+    await seedDatabase();
     process.exit(0);
   } catch (err) {
     console.error('[DB SEED ERROR] Failed to seed database:', err.message);

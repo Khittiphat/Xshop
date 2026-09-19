@@ -9,7 +9,7 @@ const router = Router();
  * - category_id: number (filter by category ID)
  * - search: string (filter by product name or description)
  */
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { category_id, search, category } = req.query;
 
@@ -62,7 +62,7 @@ router.get('/', (req, res) => {
 
     query += ' ORDER BY p.id ASC';
 
-    const products = db.prepare(query).all(...params);
+    const products = await db.prepare(query).all(...params);
 
     return res.json({
       success: true,
@@ -83,7 +83,7 @@ router.get('/', (req, res) => {
  * GET /api/products/:id
  * Retrieve a single product by ID
  */
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const productId = Number.parseInt(id, 10);
@@ -95,7 +95,7 @@ router.get('/:id', (req, res) => {
       });
     }
 
-    const product = db.prepare(`
+    const product = await db.prepare(`
       SELECT 
         p.id, 
         p.name, 

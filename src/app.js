@@ -39,9 +39,9 @@ app.get('/api', (req, res) => {
 });
 
 // Health Check for Cloud Load Balancers & Ingress
-app.get(['/api/health', '/health'], (req, res) => {
+app.get(['/api/health', '/health'], async (req, res) => {
   try {
-    const check = db.prepare('SELECT 1 as alive').get();
+    const check = await db.prepare('SELECT 1 as alive').get();
     res.status(200).json({
       status: 'ok',
       uptime: process.uptime(),

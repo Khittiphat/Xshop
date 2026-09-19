@@ -1,18 +1,18 @@
 import db, { getDbPath } from './db.js';
 import { fileURLToPath } from 'node:url';
 
-export function verifyDatabase() {
+export async function verifyDatabase() {
   console.log('====================================================');
   console.log('           X MART DATABASE VERIFICATION             ');
   console.log('====================================================');
   console.log(`Database File: ${getDbPath()}\n`);
 
   // 1. Check Tables
-  const tables = db.prepare(`
+  const tables = (await db.prepare(`
     SELECT name FROM sqlite_master 
     WHERE type='table' AND name NOT LIKE 'sqlite_%'
     ORDER BY name;
-  `).all().map(r => r.name);
+  `).all()).map(r => r.name);
 
   console.log(`Discovered Tables (${tables.length}): ${tables.join(', ')}`);
 
@@ -25,7 +25,7 @@ export function verifyDatabase() {
   }
 
   // 2. Check Foreign Key Integrity
-  const fkCheck = db.prepare('PRAGMA foreign_key_check').all();
+  const fkCheck = await db.prepare('PRAGMA foreign_key_check').all();
   if (fkCheck.length > 0) {
     console.error('[FAIL] Foreign key integrity violations found:', fkCheck);
     return false;
@@ -35,11 +35,11 @@ export function verifyDatabase() {
 
   // 3. Row Counts
   const counts = {
-    categories: db.prepare('SELECT COUNT(*) as count FROM categories').get().count,
-    products: db.prepare('SELECT COUNT(*) as count FROM products').get().count,
-    users: db.prepare('SELECT COUNT(*) as count FROM users').get().count,
-    orders: db.prepare('SELECT COUNT(*) as count FROM orders').get().count,
-    order_items: db.prepare('SELECT COUNT(*) as count FROM order_items').get().count,
+    categories: (await db.prepare('SELECT COUNT(*) as count FROM categories').get()).count,
+    products: (await db.prepare('SELECT COUNT(*) as count FROM products').get()).count,
+    users: (await db.prepare('SELECT COUNT(*) as count FROM users').get()).count,
+    orders: (await db.prepare('SELECT COUNT(*) as count FROM orders').get()).count,
+    order_items: (await db.prepare('SELECT COUNT(*) as count FROM order_items').get()).count,
   };
 
   console.log('\n--- Table Record Counts ---');
@@ -47,7 +47,7 @@ export function verifyDatabase() {
 
   // 4. Sample Products Listing with Category Join
   console.log('\n--- Sample Products in Catalog ---');
-  const sampleProducts = db.prepare(`
+  const sampleProducts = await db.prepare(`
     SELECT 
       p.id, 
       p.name, 
@@ -63,7 +63,7 @@ export function verifyDatabase() {
 
   // 5. Sample Orders with Items
   console.log('\n--- Sample Orders ---');
-  const sampleOrders = db.prepare(`
+  const sampleOrders = await db.prepare(`
     SELECT 
       o.id AS order_id,
       o.customer_name,
@@ -83,6 +83,6 @@ export function verifyDatabase() {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const ok = verifyDatabase();
+  const ok = await verifyDatabase();
   process.exit(ok ? 0 : 1);
 }

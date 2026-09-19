@@ -19,7 +19,7 @@ function isValidDateString(dateStr) {
  * - startDate: YYYY-MM-DD (optional, defaults to 30 days ago)
  * - endDate: YYYY-MM-DD (optional, defaults to today)
  */
-router.get('/sales', (req, res) => {
+router.get('/sales', async (req, res) => {
   try {
     let { startDate, endDate } = req.query;
 
@@ -55,7 +55,7 @@ router.get('/sales', (req, res) => {
     const endTimestamp = `${endDate} 23:59:59`;
 
     // 1. Overall Sales Summary (Excluding CANCELLED orders)
-    const summaryRow = db.prepare(`
+    const summaryRow = await db.prepare(`
       SELECT 
         COUNT(DISTINCT o.id) AS total_orders,
         ROUND(COALESCE(SUM(o.total_amount), 0), 2) AS total_revenue,
@@ -68,7 +68,7 @@ router.get('/sales', (req, res) => {
     const totalRevenue = summaryRow.total_revenue;
 
     // 2. Sales Breakdown by Product Category
-    const categoryRows = db.prepare(`
+    const categoryRows = await db.prepare(`
       SELECT 
         c.id AS category_id,
         c.name AS category_name,
@@ -78,7 +78,7 @@ router.get('/sales', (req, res) => {
       LEFT JOIN products p ON p.category_id = c.id
       LEFT JOIN order_items oi ON oi.product_id = p.id
       LEFT JOIN orders o ON oi.order_id = o.id 
-        AND o.status != 'CANCELLED' 
+      WHERE o.status != 'CANCELLED' 
         AND o.created_at >= ? AND o.created_at <= ?
       GROUP BY c.id, c.name
       ORDER BY category_revenue DESC, c.name ASC
@@ -126,10 +126,10 @@ router.get('/sales', (req, res) => {
  * Aggregate order counts grouped by hour of the day (00:00 to 23:00).
  * Helps identify traffic spikes for cloud server auto-scaling decisions.
  */
-router.get('/peak-hours', (req, res) => {
+router.get('/peak-hours', async (req, res) => {
   try {
     // Group active orders by hour (00-23)
-    const hourlyData = db.prepare(`
+    const hourlyData = await db.prepare(`
       SELECT 
         CAST(strftime('%H', created_at) AS INTEGER) AS hour_num,
         COUNT(*) AS order_count

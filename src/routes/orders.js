@@ -8,9 +8,9 @@ const router = Router();
  * GET /api/orders
  * List all orders with items
  */
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const orders = db.prepare(`
+    const orders = await db.prepare(`
       SELECT * FROM orders ORDER BY created_at DESC
     `).all();
 
@@ -27,11 +27,11 @@ router.get('/', (req, res) => {
       WHERE oi.order_id = ?
     `);
 
-    const ordersWithItems = orders.map(order => ({
+    const ordersWithItems = await Promise.all(orders.map(async order => ({
       ...order,
       shipping_fee: 0.00,
-      items: getItemsStmt.all(order.id)
-    }));
+      items: await getItemsStmt.all(order.id)
+    })));
 
     return res.json({
       success: true,
@@ -51,7 +51,7 @@ router.get('/', (req, res) => {
  * GET /api/orders/user/:userId
  * Order history for registered members only
  */
-router.get('/user/:userId', (req, res) => {
+router.get('/user/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     const parsedUserId = Number.parseInt(userId, 10);
@@ -64,7 +64,7 @@ router.get('/user/:userId', (req, res) => {
     }
 
     // Check if user exists in database
-    const user = db.prepare('SELECT id, name, email, phone FROM users WHERE id = ?').get(parsedUserId);
+    const user = await db.prepare('SELECT id, name, email, phone FROM users WHERE id = ?').get(parsedUserId);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -72,7 +72,7 @@ router.get('/user/:userId', (req, res) => {
       });
     }
 
-    const orders = db.prepare(`
+    const orders = await db.prepare(`
       SELECT * FROM orders 
       WHERE user_id = ? 
       ORDER BY created_at DESC
@@ -91,11 +91,11 @@ router.get('/user/:userId', (req, res) => {
       WHERE oi.order_id = ?
     `);
 
-    const ordersWithItems = orders.map(order => ({
+    const ordersWithItems = await Promise.all(orders.map(async order => ({
       ...order,
       shipping_fee: 0.00,
-      items: getItemsStmt.all(order.id)
-    }));
+      items: await getItemsStmt.all(order.id)
+    })));
 
     return res.json({
       success: true,
@@ -121,7 +121,7 @@ router.get('/user/:userId', (req, res) => {
  * GET /api/orders/:id
  * Retrieve order status, item breakdown, and driver contact info
  */
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const orderId = Number.parseInt(id, 10);
@@ -133,7 +133,7 @@ router.get('/:id', (req, res) => {
       });
     }
 
-    const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+    const order = await db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
 
     if (!order) {
       return res.status(404).json({
@@ -142,7 +142,7 @@ router.get('/:id', (req, res) => {
       });
     }
 
-    const items = db.prepare(`
+    const items = await db.prepare(`
       SELECT 
         oi.id, 
         oi.product_id, 
@@ -199,7 +199,7 @@ router.get('/:id', (req, res) => {
  * 5. Immutable cart post-checkout.
  * 6. Simulated dispatch: Assigns mock driver and triggers mock logistics webhook.
  */
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const {
     user_id = null,
     customer_name,
@@ -243,7 +243,7 @@ router.post('/', (req, res) => {
       });
     }
 
-    const existingUser = db.prepare('SELECT id FROM users WHERE id = ?').get(parsedUserId);
+    const existingUser = await db.prepare('SELECT id FROM users WHERE id = ?').get(parsedUserId);
     if (!existingUser) {
       return res.status(400).json({
         success: false,
@@ -282,7 +282,7 @@ router.post('/', (req, res) => {
     // 6. Assign mock driver for simulated dispatch
     const assignedDriver = assignMockDriver();
 
-    const createOrderTransaction = db.transaction(() => {
+    const createOrderTransaction = db.transaction(async () => {
       let subtotal = 0;
       const verifiedItems = [];
 
@@ -296,20 +296,20 @@ router.post('/', (req, res) => {
 
         let product = null;
         if (item.product_id && typeof item.product_id === 'number' && item.product_id > 0) {
-          product = getProductStmt.get(item.product_id);
+          product = await getProductStmt.get(item.product_id);
         }
 
         // Auto-provision dynamic / on-demand items into products table if not found
         if (!product) {
           const dynamicName = item.name || item.product_name;
           if (dynamicName && String(dynamicName).trim()) {
-            let onDemandCat = db.prepare("SELECT id FROM categories WHERE name = 'On-Demand Goods'").get();
+            let onDemandCat = await db.prepare("SELECT id FROM categories WHERE name = 'On-Demand Goods'").get();
             if (!onDemandCat) {
-              const catRes = db.prepare("INSERT INTO categories (name) VALUES ('On-Demand Goods')").run();
+              const catRes = await db.prepare("INSERT INTO categories (name) VALUES ('On-Demand Goods')").run();
               onDemandCat = { id: catRes.lastInsertRowid };
             }
             const unitPrice = Number(item.unit_price || item.price) || 29.00;
-            const insertProduct = db.prepare(`
+            const insertProduct = await db.prepare(`
               INSERT INTO products (name, category_id, price, icon, description)
               VALUES (?, ?, ?, ?, ?)
             `).run(
@@ -356,7 +356,7 @@ router.post('/', (req, res) => {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
-      const orderResult = insertOrderStmt.run(
+      const orderResult = await insertOrderStmt.run(
         registeredUserId,
         customer_name.trim(),
         customer_phone.trim(),
@@ -377,7 +377,7 @@ router.post('/', (req, res) => {
       `);
 
       for (const item of verifiedItems) {
-        insertItemStmt.run(orderId, item.product_id, item.quantity, item.unit_price);
+        await insertItemStmt.run(orderId, item.product_id, item.quantity, item.unit_price);
       }
 
       return {
@@ -401,7 +401,7 @@ router.post('/', (req, res) => {
       };
     });
 
-    const newOrder = createOrderTransaction();
+    const newOrder = await createOrderTransaction();
 
     // 6. Trigger mock webhook / logistics dispatch simulation
     const dispatchPayload = dispatchOrderToLogistics(newOrder);
@@ -446,7 +446,7 @@ router.post('/', (req, res) => {
  * Allow customer/guest to cancel an order as long as status is NOT 'DELIVERED'.
  * If status is 'DELIVERED', reject cancellation (no refunds once delivered).
  */
-router.post('/:id/cancel', (req, res) => {
+router.post('/:id/cancel', async (req, res) => {
   const { id } = req.params;
   const orderId = Number.parseInt(id, 10);
 
@@ -457,7 +457,7 @@ router.post('/:id/cancel', (req, res) => {
     });
   }
 
-  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+  const order = await db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
   if (!order) {
     return res.status(404).json({
       success: false,
@@ -480,7 +480,7 @@ router.post('/:id/cancel', (req, res) => {
   }
 
   // Update status to CANCELLED
-  db.prepare(`
+  await db.prepare(`
     UPDATE orders 
     SET status = 'CANCELLED' 
     WHERE id = ?
@@ -504,7 +504,7 @@ router.post('/:id/cancel', (req, res) => {
  * Internal / mock driver endpoint to transition status:
  * PENDING -> OUT_FOR_DELIVERY -> DELIVERED
  */
-router.patch('/:id/status', (req, res) => {
+router.patch('/:id/status', async (req, res) => {
   const { id } = req.params;
   const orderId = Number.parseInt(id, 10);
 
@@ -527,7 +527,7 @@ router.patch('/:id/status', (req, res) => {
 
   const targetStatus = status.toUpperCase();
 
-  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+  const order = await db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
   if (!order) {
     return res.status(404).json({
       success: false,
@@ -560,13 +560,13 @@ router.patch('/:id/status', (req, res) => {
     finalDriverPhone = assigned.phone;
   }
 
-  db.prepare(`
+  await db.prepare(`
     UPDATE orders 
     SET status = ?, driver_name = ?, driver_phone = ?
     WHERE id = ?
   `).run(targetStatus, finalDriverName, finalDriverPhone, orderId);
 
-  const updatedOrder = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+  const updatedOrder = await db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
 
   return res.json({
     success: true,
