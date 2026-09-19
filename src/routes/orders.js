@@ -313,21 +313,28 @@ router.post('/', async (req, res) => {
             if (!unitPrice || Number.isNaN(unitPrice) || unitPrice <= 0) {
               unitPrice = calculateSmartPrice(String(dynamicName).trim());
             }
-            const insertProduct = await db.prepare(`
-              INSERT INTO products (name, category_id, price, icon, description)
-              VALUES (?, ?, ?, ?, ?)
-            `).run(
-              String(dynamicName).trim(),
-              onDemandCat.id,
-              unitPrice,
-              item.icon || '✨',
-              item.description || 'On-Demand Custom Item'
-            );
-            product = {
-              id: insertProduct.lastInsertRowid,
-              name: String(dynamicName).trim(),
-              price: unitPrice
-            };
+
+            // Lazy creation: check if already created previously or insert new
+            const existingProduct = await db.prepare('SELECT id, name, price FROM products WHERE name = ?').get(String(dynamicName).trim());
+            if (existingProduct) {
+              product = existingProduct;
+            } else {
+              const insertProduct = await db.prepare(`
+                INSERT INTO products (name, category_id, price, icon, description)
+                VALUES (?, ?, ?, ?, ?)
+              `).run(
+                String(dynamicName).trim(),
+                onDemandCat.id,
+                unitPrice,
+                item.icon || '✨',
+                item.description || 'On-Demand Custom Item'
+              );
+              product = {
+                id: insertProduct.lastInsertRowid,
+                name: String(dynamicName).trim(),
+                price: unitPrice
+              };
+            }
           } else {
             if (!item.product_id || typeof item.product_id !== 'number' || item.product_id <= 0) {
               throw new Error('Each item must specify a valid positive product_id or dynamic item details.');

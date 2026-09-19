@@ -2438,4 +2438,28 @@ html, body {
   color: #64748B;
 }
 
+/* Responsive Compact Pricing for Ultra-Mobile (<400px down to 320px) */
+@media (max-width: 400px) {
+  .product-list-row {
+    padding: 6px 8px;
+    gap: 6px;
+  }
+  .product-row-price {
+    font-size: 0.78rem;
+    min-width: 40px;
+  }
+  .btn-add-quick {
+    padding: 6px 8px;
+    font-size: 0.72rem;
+    min-height: 30px;
+  }
+  .cart-item-row {
+    padding: 6px 8px;
+    gap: 6px;
+  }
+  .cart-item-subtotal {
+    font-size: 0.78rem;
+  }
+}
+
 
