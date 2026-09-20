@@ -98,6 +98,63 @@ router.get('/sales', async (req, res) => {
       };
     });
 
+    // 3. Filtered Orders with Category and Items breakdown (for CSV Export & Audit)
+    const ordersInPeriod = await db.prepare(`
+      SELECT id, created_at, total_amount, payment_method, customer_name
+      FROM orders
+      WHERE status != 'CANCELLED'
+        AND created_at >= ? AND created_at <= ?
+      ORDER BY created_at DESC
+    `).all(startTimestamp, endTimestamp);
+
+    const getItemsForOrderStmt = db.prepare(`
+      SELECT 
+        p.name AS product_name,
+        c.name AS category_name,
+        oi.quantity,
+        oi.unit_price
+      FROM order_items oi
+      JOIN products p ON oi.product_id = p.id
+      JOIN categories c ON p.category_id = c.id
+      WHERE oi.order_id = ?
+    `);
+
+    const detailedOrders = await Promise.all(ordersInPeriod.map(async (o) => {
+      const items = await getItemsForOrderStmt.all(o.id);
+      const categories = [...new Set(items.map(i => i.category_name))].join(', ') || 'Uncategorized';
+      const itemsSummary = items.map(i => `${i.product_name} (x${i.quantity})`).join(', ');
+      return {
+        order_id: o.id,
+        date: o.created_at,
+        category: categories,
+        items: itemsSummary,
+        revenue: o.total_amount
+      };
+    }));
+
+    if (req.query.format === 'csv') {
+      const escapeCsv = (val) => {
+        const str = String(val ?? '');
+        if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+
+      const csvHeader = 'Date,Order ID,Category,Items,Revenue\r\n';
+      const csvRows = detailedOrders.map(o => [
+        escapeCsv(o.date),
+        escapeCsv(o.order_id),
+        escapeCsv(o.category),
+        escapeCsv(o.items),
+        escapeCsv(Number(o.revenue).toFixed(2))
+      ].join(',')).join('\r\n');
+
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="xmart_sales_${startDate}_to_${endDate}.csv"`);
+      return res.status(200).send(csvHeader + csvRows);
+    }
+
     return res.json({
       success: true,
       time_range: {
@@ -110,7 +167,8 @@ router.get('/sales', async (req, res) => {
         average_order_value: summaryRow.average_order_value,
         currency: 'USD / THB'
       },
-      category_breakdown: categoryBreakdown
+      category_breakdown: categoryBreakdown,
+      orders: detailedOrders
     });
   } catch (error) {
     console.error('[ADMIN SALES REPORT ERROR]', error);
@@ -119,6 +177,16 @@ router.get('/sales', async (req, res) => {
       error: 'Failed to generate sales report'
     });
   }
+});
+
+/**
+ * GET /api/admin/reports/sales/export
+ * Convenience endpoint for direct CSV export download
+ */
+router.get('/sales/export', (req, res) => {
+  req.query.format = 'csv';
+  // Forward to sales handler
+  router.handle({ ...req, url: '/sales' }, res);
 });
 
 /**

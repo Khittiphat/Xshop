@@ -251,8 +251,13 @@
         <!-- Section 1: Sales Analytics & Date Filter -->
         <div class="analytics-card">
           <div class="analytics-card-header">
-            <h3>📈 Sales Performance</h3>
-            <span class="report-badge">Live SQL</span>
+            <div>
+              <h3>📈 Sales Performance</h3>
+              <span class="report-badge">Live SQL</span>
+            </div>
+            <button id="sales-export-csv-btn" class="btn btn-outline btn-sm" title="Export filtered sales report to CSV" aria-label="Export Sales Report to CSV">
+              📥 Export to CSV
+            </button>
           </div>
 
           <!-- Date Range Filter Form -->
@@ -595,6 +600,91 @@
               Back to Edit Cart
             </button>
           </div>
+        </div>
+      </div>
+    <!-- Digital Receipt Modal -->
+    <div id="receipt-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="receipt-modal-title">
+      <div class="modal-backdrop" id="receipt-modal-backdrop"></div>
+      <div class="modal-card receipt-modal-card">
+        <div class="modal-header receipt-header">
+          <div class="receipt-header-branding">
+            <span class="receipt-badge">X MART RECEIPT</span>
+            <h3 id="receipt-modal-title">Order Confirmed!</h3>
+          </div>
+          <button type="button" class="btn-icon" id="close-receipt-modal-btn" aria-label="Close Receipt">✕</button>
+        </div>
+
+        <div class="receipt-body" id="receipt-print-area">
+          <div class="receipt-store-info">
+            <div class="receipt-logo">🛒 X MART 24/7 EXPRESS</div>
+            <p class="receipt-store-sub">Instant 15-Minute Convenience Delivery</p>
+            <div class="receipt-dashed-line"></div>
+          </div>
+
+          <div class="receipt-meta-grid">
+            <div class="receipt-meta-item">
+              <span class="receipt-meta-label">Order ID</span>
+              <div class="receipt-id-row">
+                <strong id="receipt-order-id" class="receipt-id-text">#--</strong>
+                <button type="button" id="receipt-copy-id-btn" class="btn-copy-id" title="Copy Order ID" aria-label="Copy Order ID">
+                  📋 Copy
+                </button>
+              </div>
+            </div>
+            <div class="receipt-meta-item">
+              <span class="receipt-meta-label">Date & Time</span>
+              <span id="receipt-timestamp" class="receipt-meta-val">--</span>
+            </div>
+            <div class="receipt-meta-item">
+              <span class="receipt-meta-label">Customer</span>
+              <span id="receipt-customer-name" class="receipt-meta-val">--</span>
+            </div>
+            <div class="receipt-meta-item">
+              <span class="receipt-meta-label">Payment Method</span>
+              <span id="receipt-payment-method" class="receipt-pill">CASH</span>
+            </div>
+          </div>
+
+          <div class="receipt-dashed-line"></div>
+
+          <!-- Items Purchased Table -->
+          <div class="receipt-items-section">
+            <div class="receipt-items-heading">
+              <span>Item Description</span>
+              <span style="text-align: right;">Amount</span>
+            </div>
+            <div id="receipt-items-list" class="receipt-items-list">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <div class="receipt-dashed-line"></div>
+
+          <!-- Totals -->
+          <div class="receipt-totals-table">
+            <div class="receipt-total-row">
+              <span>Items Subtotal:</span>
+              <span id="receipt-subtotal">฿0.00</span>
+            </div>
+            <div class="receipt-total-row receipt-free-shipping">
+              <span>Express Delivery Fee:</span>
+              <span class="free-tag">FREE (฿0)</span>
+            </div>
+            <div class="receipt-total-row receipt-grand-total">
+              <span>Total Paid / Payable:</span>
+              <strong id="receipt-total-amount">฿0.00</strong>
+            </div>
+          </div>
+
+          <div class="receipt-footer-note">
+            <p>🎉 Thank you for shopping with X Mart!</p>
+            <p class="receipt-subnote">Our courier has been dispatched. Track real-time progress below.</p>
+          </div>
+        </div>
+
+        <div class="receipt-modal-actions">
+          <button type="button" id="receipt-print-btn" class="btn btn-outline btn-block">🖨️ Print Receipt</button>
+          <button type="button" id="receipt-close-btn" class="btn btn-primary btn-block">Close & Track Order</button>
         </div>
       </div>
     </div>

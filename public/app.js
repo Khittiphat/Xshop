@@ -48,6 +48,7 @@ const elements = {
   salesStartDate: document.getElementById('sales-start-date'),
   salesEndDate: document.getElementById('sales-end-date'),
   salesFilterApplyBtn: document.getElementById('sales-filter-apply-btn'),
+  salesExportCsvBtn: document.getElementById('sales-export-csv-btn'),
   kpiRevenue: document.getElementById('kpi-revenue'),
   kpiOrders: document.getElementById('kpi-orders'),
   kpiAov: document.getElementById('kpi-aov'),
@@ -99,6 +100,21 @@ const elements = {
   confirmCashOrderBtn: document.getElementById('confirm-cash-order-btn'),
   cancelCashModalBtn: document.getElementById('cancel-cash-modal-btn'),
   qrTimerCountdown: document.getElementById('qr-timer-countdown'),
+
+  // Digital Receipt Modal
+  receiptModal: document.getElementById('receipt-modal'),
+  receiptModalBackdrop: document.getElementById('receipt-modal-backdrop'),
+  closeReceiptModalBtn: document.getElementById('close-receipt-modal-btn'),
+  receiptCloseBtn: document.getElementById('receipt-close-btn'),
+  receiptPrintBtn: document.getElementById('receipt-print-btn'),
+  receiptCopyIdBtn: document.getElementById('receipt-copy-id-btn'),
+  receiptOrderId: document.getElementById('receipt-order-id'),
+  receiptTimestamp: document.getElementById('receipt-timestamp'),
+  receiptCustomerName: document.getElementById('receipt-customer-name'),
+  receiptPaymentMethod: document.getElementById('receipt-payment-method'),
+  receiptItemsList: document.getElementById('receipt-items-list'),
+  receiptSubtotal: document.getElementById('receipt-subtotal'),
+  receiptTotalAmount: document.getElementById('receipt-total-amount'),
 
   // Tracking
   trackOrderIdInput: document.getElementById('track-order-id-input'),
@@ -179,6 +195,7 @@ function initEventListeners() {
   elements.salesFilterApplyBtn?.addEventListener('click', () => {
     loadSalesReport(elements.salesStartDate.value, elements.salesEndDate.value);
   });
+  elements.salesExportCsvBtn?.addEventListener('click', exportSalesReportToCsv);
 
   document.querySelectorAll('.preset-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -253,6 +270,12 @@ function initEventListeners() {
   elements.cancelCashModalBtn?.addEventListener('click', closePaymentModal);
   elements.confirmPaymentCompletedBtn?.addEventListener('click', finalizeOrderPlacement);
   elements.confirmCashOrderBtn?.addEventListener('click', finalizeOrderPlacement);
+
+  // Digital Receipt Modal Listeners
+  elements.closeReceiptModalBtn?.addEventListener('click', closeDigitalReceiptModal);
+  elements.receiptModalBackdrop?.addEventListener('click', closeDigitalReceiptModal);
+  elements.receiptCloseBtn?.addEventListener('click', closeDigitalReceiptModal);
+  elements.receiptPrintBtn?.addEventListener('click', () => window.print());
 
   // Simulation Controls for Status Transitions (Pending -> Out for Delivery -> Delivered)
   elements.simPending?.addEventListener('click', () => simulateDriverStatus('PENDING'));
@@ -1084,6 +1107,9 @@ async function finalizeOrderPlacement() {
 
       showToast(`Order #${newOrder.id} placed! Mock external courier dispatched.`, 'success');
 
+      // Show Clean Digital Receipt Modal
+      showDigitalReceiptModal(newOrder);
+
       // Switch to tracking view and load order details
       switchView('tracking');
       loadOrderDetails(newOrder.id);
@@ -1429,6 +1455,164 @@ async function loadSalesReport(startDate, endDate) {
   } catch (err) {
     console.error('Sales report error:', err);
     showToast('Failed to fetch sales analytics', 'error');
+  }
+}
+
+/**
+ * Admin Sales Data Export:
+ * Downloads a CSV file containing the filtered sales report:
+ * Columns: Date, Order ID, Category, Items, Revenue
+ */
+async function exportSalesReportToCsv() {
+  const startDate = elements.salesStartDate ? elements.salesStartDate.value : '';
+  const endDate = elements.salesEndDate ? elements.salesEndDate.value : '';
+  if (elements.salesExportCsvBtn) {
+    elements.salesExportCsvBtn.disabled = true;
+    elements.salesExportCsvBtn.textContent = '⏳ Exporting...';
+  }
+
+  try {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    params.append('format', 'csv');
+
+    const res = await fetch(`/api/admin/reports/sales?${params.toString()}`);
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Failed to export sales data');
+    }
+
+    const csvText = await res.text();
+    const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+    const downloadUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `xmart_sales_${startDate || 'all'}_to_${endDate || 'today'}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(downloadUrl);
+
+    showToast('Sales report exported to CSV successfully!', 'success');
+  } catch (err) {
+    console.error('CSV Export Error:', err);
+    showToast(err.message || 'Failed to download CSV', 'error');
+  } finally {
+    if (elements.salesExportCsvBtn) {
+      elements.salesExportCsvBtn.disabled = false;
+      elements.salesExportCsvBtn.textContent = '📥 Export to CSV';
+    }
+  }
+}
+
+/**
+ * Digital Receipt Modal
+ * Clean, printable modal showing:
+ * Order ID, timestamp, items purchased, total amount, payment method, free shipping confirmation (฿0),
+ * and a "Copy Order ID" button.
+ */
+function showDigitalReceiptModal(order) {
+  if (!order || !elements.receiptModal) return;
+
+  if (elements.receiptOrderId) {
+    elements.receiptOrderId.textContent = `#${order.id}`;
+  }
+
+  if (elements.receiptTimestamp) {
+    elements.receiptTimestamp.textContent = new Date(order.created_at || Date.now()).toLocaleString();
+  }
+
+  if (elements.receiptCustomerName) {
+    elements.receiptCustomerName.textContent = order.customer_name || 'Guest Customer';
+  }
+
+  if (elements.receiptPaymentMethod) {
+    const isQr = order.payment_method === 'QR';
+    elements.receiptPaymentMethod.textContent = isQr ? 'QR PromptPay' : 'Cash on Delivery (COD)';
+  }
+
+  if (elements.receiptItemsList) {
+    elements.receiptItemsList.innerHTML = '';
+    const items = order.items || [];
+    items.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'receipt-item-row';
+      const name = item.product_name || item.name || 'Convenience Item';
+      const qty = item.quantity || 1;
+      const unitPrice = Number(item.unit_price || item.price || 0);
+      const subtotal = Number(item.subtotal || (unitPrice * qty));
+
+      row.innerHTML = `
+        <div class="receipt-item-desc">
+          <strong>${escapeHtml(name)}</strong>
+          <div class="receipt-item-subtext">${formatTHB(unitPrice)} × ${qty}</div>
+        </div>
+        <div class="receipt-item-val">${formatTHB(subtotal)}</div>
+      `;
+      elements.receiptItemsList.appendChild(row);
+    });
+  }
+
+  const grandTotal = Number(order.total_amount || (order.pricing && order.pricing.total_amount) || 0);
+  if (elements.receiptSubtotal) {
+    elements.receiptSubtotal.textContent = formatTHB(grandTotal);
+  }
+  if (elements.receiptTotalAmount) {
+    elements.receiptTotalAmount.textContent = formatTHB(grandTotal);
+  }
+
+  // Copy Order ID Button
+  if (elements.receiptCopyIdBtn) {
+    elements.receiptCopyIdBtn.onclick = () => {
+      const orderIdStr = String(order.id);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(orderIdStr).then(() => {
+          elements.receiptCopyIdBtn.textContent = '✓ Copied!';
+          setTimeout(() => {
+            elements.receiptCopyIdBtn.textContent = '📋 Copy';
+          }, 2000);
+          showToast(`Order ID #${order.id} copied to clipboard!`, 'success');
+        }).catch(() => {
+          copyFallback(orderIdStr);
+        });
+      } else {
+        copyFallback(orderIdStr);
+      }
+    };
+  }
+
+  elements.receiptModal.classList.remove('hidden');
+  elements.receiptModalBackdrop?.classList.remove('hidden');
+}
+
+function copyFallback(text) {
+  const tempInput = document.createElement('input');
+  tempInput.value = text;
+  document.body.appendChild(tempInput);
+  tempInput.select();
+  try {
+    document.execCommand('copy');
+    if (elements.receiptCopyIdBtn) {
+      elements.receiptCopyIdBtn.textContent = '✓ Copied!';
+      setTimeout(() => {
+        elements.receiptCopyIdBtn.textContent = '📋 Copy';
+      }, 2000);
+    }
+    showToast(`Order ID #${text} copied!`, 'success');
+  } catch (err) {
+    showToast('Could not copy automatically.', 'error');
+  } finally {
+    document.body.removeChild(tempInput);
+  }
+}
+
+function closeDigitalReceiptModal() {
+  if (elements.receiptModal) {
+    elements.receiptModal.classList.add('hidden');
+  }
+  if (elements.receiptModalBackdrop) {
+    elements.receiptModalBackdrop.classList.add('hidden');
   }
 }
 
