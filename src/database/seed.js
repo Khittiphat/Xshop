@@ -269,7 +269,15 @@ export async function seedDatabase() {
     }
 
     // 3. Seed Sample Users
+    const { hashPassword } = await import('../routes/auth.js');
     const users = [
+      {
+        name: 'System Administrator',
+        phone: '0800000000',
+        email: 'admin@xmart.com',
+        password_hash: hashPassword('Admin1234!'),
+        role: 'admin'
+      },
       {
         name: 'Store Manager Alice',
         phone: '+1-555-0100',

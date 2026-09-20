@@ -24,6 +24,18 @@ export async function initDatabase() {
   // Execute DDL schema within a transaction
   await db.exec(schema);
   console.log('[DB INIT] Database schema applied successfully (tables & indexes created).');
+
+  // Ensure default administrator account exists (admin@xmart.com)
+  const adminExists = await db.prepare("SELECT id FROM users WHERE email = 'admin@xmart.com'").get();
+  if (!adminExists) {
+    const { hashPassword } = await import('../routes/auth.js');
+    const adminHash = hashPassword('Admin1234!');
+    await db.prepare(`
+      INSERT INTO users (name, phone, email, password_hash, role)
+      VALUES ('System Administrator', '0800000000', 'admin@xmart.com', ?, 'admin')
+    `).run(adminHash);
+    console.log('[DB INIT] Default system administrator seeded (admin@xmart.com).');
+  }
 }
 
 // Run directly if invoked from CLI

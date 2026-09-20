@@ -205,26 +205,60 @@ async function runAudit() {
   );
 
   // -------------------------------------------------------------
-  // 3. ADMIN REPORTING & SCALABILITY ANALYTICS
+  // 3. ADMIN REPORTING & SCALABILITY ANALYTICS (RBAC PROTECTED)
   // -------------------------------------------------------------
-  console.log('\n--- 3. Admin Reporting & Scalability Analytics ---');
+  console.log('\n--- 3. Admin Reporting & Scalability Analytics (RBAC Protected) ---');
+
+  // RBAC Unauthenticated check -> 401
+  const unauthAdminRes = await request.get('/api/admin/reports/sales');
+  assertTest(report.admin, 'Unauthenticated request rejected with HTTP 401', unauthAdminRes.status === 401);
+
+  // RBAC Customer access check -> 403
+  const customerLoginRes = await request.post('/api/auth/login').send({
+    identifier: 'john.doe@example.com',
+    password: 'Admin@123'
+  });
+  const customerToken = customerLoginRes.body?.token;
+  const forbiddenAdminRes = await request
+    .get('/api/admin/reports/sales')
+    .set('Authorization', `Bearer ${customerToken}`);
+  assertTest(
+    report.admin,
+    'Customer role rejected with HTTP 403 Forbidden',
+    forbiddenAdminRes.status === 403 && forbiddenAdminRes.body.error.includes('Admin access required')
+  );
+
+  // Admin login for authorized reporting
+  const adminLoginRes = await request.post('/api/auth/login').send({
+    identifier: 'admin@xmart.com',
+    password: 'Admin1234!'
+  });
+  const adminToken = adminLoginRes.body?.token;
+  assertTest(report.admin, 'Admin login authentication', adminLoginRes.status === 200 && !!adminToken);
+
   // Sales JSON
-  const salesJsonRes = await request.get('/api/admin/reports/sales');
-  assertTest(report.admin, 'Sales Report JSON endpoint', salesJsonRes.status === 200 && !!salesJsonRes.body.summary);
+  const salesJsonRes = await request
+    .get('/api/admin/reports/sales')
+    .set('Authorization', `Bearer ${adminToken}`);
+  assertTest(report.admin, 'Sales Report JSON endpoint (Admin HTTP 200)', salesJsonRes.status === 200 && !!salesJsonRes.body.summary);
   assertTest(report.admin, 'Sales Report excludes cancelled orders', salesJsonRes.body.summary.total_revenue !== undefined);
 
   // Sales CSV export
-  const salesCsvRes = await request.get('/api/admin/reports/sales?format=csv');
+  const salesCsvRes = await request
+    .get('/api/admin/reports/sales?format=csv')
+    .set('Authorization', `Bearer ${adminToken}`);
   assertTest(
     report.admin,
-    'Sales Report CSV export with valid headers',
+    'Sales Report CSV export with valid UTF-8 BOM headers',
     salesCsvRes.status === 200 &&
       salesCsvRes.headers['content-type'].includes('text/csv') &&
       salesCsvRes.text.startsWith('\uFEFFDate,Order ID,Category,Items,Revenue')
   );
 
   // Peak-hours & Cloud auto-scaling recommendation
-  const peakRes = await request.get('/api/admin/reports/peak-hours');
+  const peakRes = await request
+    .get('/api/admin/reports/peak-hours')
+    .set('Authorization', `Bearer ${adminToken}`);
   assertTest(
     report.admin,
     'Peak hours 24-hour distribution report',

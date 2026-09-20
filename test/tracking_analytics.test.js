@@ -7,11 +7,29 @@ import { seedDatabase } from '../src/database/seed.js';
 
 describe('X Mart Order Tracking, Cancellation, and Analytics Reports', () => {
   let sampleProduct;
+  let adminToken;
+  let customerToken;
 
   before(async () => {
     await seedDatabase();
     sampleProduct = await db.prepare('SELECT id, name, price FROM products LIMIT 1').get();
     assert.ok(sampleProduct, 'Sample product must exist');
+
+    // Acquire Admin Token
+    const adminLoginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ identifier: 'admin@xmart.com', password: 'Admin1234!' })
+      .expect(200);
+    adminToken = adminLoginRes.body.token;
+    assert.ok(adminToken, 'Admin token must be present');
+
+    // Acquire Customer Token
+    const customerLoginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ identifier: 'john.doe@example.com', password: 'Admin@123' })
+      .expect(200);
+    customerToken = customerLoginRes.body.token;
+    assert.ok(customerToken, 'Customer token must be present');
   });
 
   describe('POST /api/orders/:id/cancel - Cancellation Logic', () => {
@@ -193,6 +211,7 @@ describe('X Mart Order Tracking, Cancellation, and Analytics Reports', () => {
       const today = new Date().toISOString().slice(0, 10);
       const res = await request(app)
         .get(`/api/admin/reports/sales?startDate=2026-01-01&endDate=${today}`)
+        .set('Authorization', `Bearer ${adminToken}`)
         .expect('Content-Type', /json/)
         .expect(200);
 
@@ -218,6 +237,7 @@ describe('X Mart Order Tracking, Cancellation, and Analytics Reports', () => {
       // Fetch initial revenue
       const initialReport = await request(app)
         .get(`/api/admin/reports/sales?startDate=2026-01-01&endDate=${today}`)
+        .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
       const initialRevenue = initialReport.body.summary.total_revenue;
@@ -240,6 +260,7 @@ describe('X Mart Order Tracking, Cancellation, and Analytics Reports', () => {
       // Revenue increases with active order
       const activeReport = await request(app)
         .get(`/api/admin/reports/sales?startDate=2026-01-01&endDate=${today}`)
+        .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
       assert.equal(
@@ -253,6 +274,7 @@ describe('X Mart Order Tracking, Cancellation, and Analytics Reports', () => {
       // Cancelled order should now be excluded from total sales revenue
       const postCancelReport = await request(app)
         .get(`/api/admin/reports/sales?startDate=2026-01-01&endDate=${today}`)
+        .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
       assert.equal(
@@ -264,6 +286,7 @@ describe('X Mart Order Tracking, Cancellation, and Analytics Reports', () => {
     test('should reject invalid date format in sales report query', async () => {
       const res = await request(app)
         .get('/api/admin/reports/sales?startDate=2026/01/01&endDate=2026-01-10')
+        .set('Authorization', `Bearer ${adminToken}`)
         .expect(400);
 
       assert.equal(res.body.success, false);
@@ -273,6 +296,7 @@ describe('X Mart Order Tracking, Cancellation, and Analytics Reports', () => {
     test('should reject when startDate is later than endDate', async () => {
       const res = await request(app)
         .get('/api/admin/reports/sales?startDate=2026-12-31&endDate=2026-01-01')
+        .set('Authorization', `Bearer ${adminToken}`)
         .expect(400);
 
       assert.equal(res.body.success, false);
@@ -284,6 +308,7 @@ describe('X Mart Order Tracking, Cancellation, and Analytics Reports', () => {
     test('should aggregate order counts grouped by hour of the day (24 hours)', async () => {
       const res = await request(app)
         .get('/api/admin/reports/peak-hours')
+        .set('Authorization', `Bearer ${adminToken}`)
         .expect('Content-Type', /json/)
         .expect(200);
 
@@ -305,6 +330,55 @@ describe('X Mart Order Tracking, Cancellation, and Analytics Reports', () => {
         assert.ok(typeof h.percentage === 'string');
         assert.ok(['LOW', 'NORMAL', 'PEAK'].includes(h.traffic_level));
       }
+    });
+  });
+
+  describe('RBAC: Role-Based Access Control for Admin Routes', () => {
+    test('should reject unauthenticated request to /api/admin/reports/sales with 401 Unauthorized', async () => {
+      const res = await request(app)
+        .get('/api/admin/reports/sales')
+        .expect(401);
+
+      assert.equal(res.body.success, false);
+      assert.match(res.body.error, /Unauthorized/i);
+    });
+
+    test('should reject customer role access to /api/admin/reports/sales with 403 Forbidden', async () => {
+      const res = await request(app)
+        .get('/api/admin/reports/sales')
+        .set('Authorization', `Bearer ${customerToken}`)
+        .expect(403);
+
+      assert.equal(res.body.success, false);
+      assert.match(res.body.error, /Forbidden: Admin access required/i);
+    });
+
+    test('should reject unauthenticated request to /api/admin/reports/peak-hours with 401 Unauthorized', async () => {
+      const res = await request(app)
+        .get('/api/admin/reports/peak-hours')
+        .expect(401);
+
+      assert.equal(res.body.success, false);
+      assert.match(res.body.error, /Unauthorized/i);
+    });
+
+    test('should reject customer role access to /api/admin/reports/peak-hours with 403 Forbidden', async () => {
+      const res = await request(app)
+        .get('/api/admin/reports/peak-hours')
+        .set('Authorization', `Bearer ${customerToken}`)
+        .expect(403);
+
+      assert.equal(res.body.success, false);
+      assert.match(res.body.error, /Forbidden: Admin access required/i);
+    });
+
+    test('should allow administrator access to admin reports with HTTP 200', async () => {
+      const res = await request(app)
+        .get('/api/admin/reports/sales')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      assert.equal(res.body.success, true);
     });
   });
 });

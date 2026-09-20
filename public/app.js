@@ -384,6 +384,15 @@ function initEventListeners() {
 // View Management
 // =========================================================
 function switchView(viewName) {
+  // Guard Admin Analytics View against unauthorized access
+  if (viewName === 'analytics') {
+    if (!state.currentUser || state.currentUser.role !== 'admin') {
+      showToast('Access Denied: Administrator role required', 'error');
+      switchView('catalog');
+      return;
+    }
+  }
+
   state.activeView = viewName;
   window.location.hash = viewName;
 
@@ -415,6 +424,12 @@ function switchView(viewName) {
 function updateUserModeUI() {
   const user = state.currentUser;
   const isMember = Boolean(user);
+
+  // Admin button visibility (strictly restricted to role === 'admin')
+  const isAdmin = isMember && user.role === 'admin';
+  if (elements.adminAnalyticsBtn) {
+    elements.adminAnalyticsBtn.classList.toggle('hidden', !isAdmin);
+  }
 
   // Header Avatar & Name
   if (isMember) {
@@ -1766,7 +1781,10 @@ async function loadSalesReport(startDate, endDate) {
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
 
-    const res = await fetch(`/api/admin/reports/sales?${params.toString()}`);
+    const headers = {};
+    if (state.authToken) headers['Authorization'] = `Bearer ${state.authToken}`;
+
+    const res = await fetch(`/api/admin/reports/sales?${params.toString()}`, { headers });
     const data = await res.json();
 
     if (data.success) {
@@ -1814,7 +1832,10 @@ async function exportSalesReportToCsv() {
     if (endDate) params.append('endDate', endDate);
     params.append('format', 'csv');
 
-    const res = await fetch(`/api/admin/reports/sales?${params.toString()}`);
+    const headers = {};
+    if (state.authToken) headers['Authorization'] = `Bearer ${state.authToken}`;
+
+    const res = await fetch(`/api/admin/reports/sales?${params.toString()}`, { headers });
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
       throw new Error(errData.error || 'Failed to export sales data');
@@ -1994,7 +2015,10 @@ async function loadPeakHoursReport() {
   }
 
   try {
-    const res = await fetch('/api/admin/reports/peak-hours');
+    const headers = {};
+    if (state.authToken) headers['Authorization'] = `Bearer ${state.authToken}`;
+
+    const res = await fetch('/api/admin/reports/peak-hours', { headers });
     const data = await res.json();
 
     if (data.success && Array.isArray(data.data)) {

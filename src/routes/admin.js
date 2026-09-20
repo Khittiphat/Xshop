@@ -1,7 +1,11 @@
 import { Router } from 'express';
 import db from '../database/db.js';
+import { requireAdmin } from './auth.js';
 
 const router = Router();
+
+// Restrict all admin endpoints to authenticated administrators
+router.use(requireAdmin);
 
 // Helper to validate YYYY-MM-DD
 function isValidDateString(dateStr) {

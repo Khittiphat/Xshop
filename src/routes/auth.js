@@ -271,4 +271,37 @@ router.post('/logout', (req, res) => {
   });
 });
 
+/**
+ * Middleware to require authenticated administrator session
+ */
+export function requireAdmin(req, res, next) {
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      error: 'Unauthorized: Authentication required.'
+    });
+  }
+
+  const session = activeSessions.get(token);
+  if (!session) {
+    return res.status(401).json({
+      success: false,
+      error: 'Unauthorized: Invalid or expired session token.'
+    });
+  }
+
+  if (session.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      error: 'Forbidden: Admin access required'
+    });
+  }
+
+  req.user = session;
+  next();
+}
+
 export default router;
