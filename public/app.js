@@ -18,6 +18,17 @@ const state = {
   guestOrderIds: JSON.parse(localStorage.getItem('xmart_guest_orders') || '[]')
 };
 
+// Backward compatibility for legacy ID references (cust-name -> checkout-name)
+const _nativeGetElementById = document.getElementById.bind(document);
+document.getElementById = function(id) {
+  const el = _nativeGetElementById(id);
+  if (el) return el;
+  if (id === 'cust-name') return _nativeGetElementById('checkout-name');
+  if (id === 'cust-phone') return _nativeGetElementById('checkout-phone');
+  if (id === 'cust-address') return _nativeGetElementById('checkout-address');
+  return null;
+};
+
 // DOM Element References
 const elements = {
   // Navigation
@@ -80,9 +91,12 @@ const elements = {
 
   // Checkout Form & Delivery Information
   checkoutForm: document.getElementById('checkout-form'),
-  custName: document.getElementById('cust-name'),
-  custPhone: document.getElementById('cust-phone'),
-  custAddress: document.getElementById('cust-address'),
+  checkoutName: document.getElementById('checkout-name') || document.getElementById('cust-name'),
+  checkoutPhone: document.getElementById('checkout-phone') || document.getElementById('cust-phone'),
+  checkoutAddress: document.getElementById('checkout-address') || document.getElementById('cust-address'),
+  custName: document.getElementById('checkout-name') || document.getElementById('cust-name'),
+  custPhone: document.getElementById('checkout-phone') || document.getElementById('cust-phone'),
+  custAddress: document.getElementById('checkout-address') || document.getElementById('cust-address'),
   checkoutAuthBanner: document.getElementById('checkout-auth-banner'),
   checkoutAuthStatus: document.getElementById('checkout-auth-status'),
   checkoutAuthActionBtn: document.getElementById('checkout-auth-action-btn'),
@@ -341,8 +355,12 @@ function initEventListeners() {
   elements.authLoginForm?.addEventListener('submit', handleLoginSubmit);
   elements.authRegisterForm?.addEventListener('submit', handleRegisterSubmit);
 
-  // Checkout Form Submit
-  elements.checkoutForm.addEventListener('submit', handleCheckoutSubmit);
+  // Checkout Form Submit & Guest Draft Auto-saving
+  elements.checkoutForm?.addEventListener('submit', handleCheckoutSubmit);
+  const checkoutInputs = getCheckoutInputs();
+  checkoutInputs.nameInput?.addEventListener('input', saveGuestDeliveryDraft);
+  checkoutInputs.phoneInput?.addEventListener('input', saveGuestDeliveryDraft);
+  checkoutInputs.addressInput?.addEventListener('input', saveGuestDeliveryDraft);
 
   // Tracking Lookup
   elements.trackLookupBtn.addEventListener('click', () => {
@@ -419,6 +437,68 @@ function switchView(viewName) {
 }
 
 // =========================================================
+// Checkout Form Rendering & Session Synchronization
+// =========================================================
+function getCheckoutInputs() {
+  const nameInput = document.getElementById('checkout-name') || elements?.checkoutName || elements?.custName || document.getElementById('cust-name');
+  const phoneInput = document.getElementById('checkout-phone') || elements?.checkoutPhone || elements?.custPhone || document.getElementById('cust-phone');
+  const addressInput = document.getElementById('checkout-address') || elements?.checkoutAddress || elements?.custAddress || document.getElementById('cust-address');
+  return { nameInput, phoneInput, addressInput };
+}
+
+function renderCheckout() {
+  const { nameInput, phoneInput, addressInput } = getCheckoutInputs();
+  if (!nameInput || !phoneInput) return;
+
+  const user = state.currentUser;
+  const isMember = Boolean(user);
+
+  if (isMember) {
+    // 1. Logged-in Member:
+    // Set Recipient Name input field (#checkout-name) to state.currentUser.name
+    nameInput.value = user.name || '';
+    // Set Phone Number input field (#checkout-phone) to state.currentUser.phone || ''
+    phoneInput.value = user.phone || '';
+    // Do NOT auto-fill with old guest data from localStorage (such as 'Guest')
+    if (addressInput && user.address && !addressInput.value) {
+      addressInput.value = user.address;
+    }
+  } else {
+    // 2. Unauthenticated Guest:
+    // Leave fields empty or load saved guest draft details specifically keyed to guest sessions
+    try {
+      const guestDraftRaw = localStorage.getItem('xmart_guest_delivery_info');
+      if (guestDraftRaw) {
+        const guestDraft = JSON.parse(guestDraftRaw);
+        nameInput.value = guestDraft.name || '';
+        phoneInput.value = guestDraft.phone || '';
+        if (addressInput && guestDraft.address) {
+          addressInput.value = guestDraft.address;
+        }
+      } else {
+        nameInput.value = '';
+        phoneInput.value = '';
+      }
+    } catch {
+      nameInput.value = '';
+      phoneInput.value = '';
+    }
+  }
+}
+
+function saveGuestDeliveryDraft() {
+  if (state.currentUser) return; // Only persist for unauthenticated guest sessions
+  const { nameInput, phoneInput, addressInput } = getCheckoutInputs();
+  if (!nameInput || !phoneInput) return;
+  const draft = {
+    name: nameInput.value,
+    phone: phoneInput.value,
+    address: addressInput ? addressInput.value : ''
+  };
+  localStorage.setItem('xmart_guest_delivery_info', JSON.stringify(draft));
+}
+
+// =========================================================
 // Real Authentication & Session Management
 // =========================================================
 function updateUserModeUI() {
@@ -451,14 +531,15 @@ function updateUserModeUI() {
       elements.checkoutAuthStatus.textContent = `⭐ Logged in as ${user.name}`;
       elements.checkoutAuthBanner?.classList.add('is-member');
       if (elements.checkoutAuthActionBtn) elements.checkoutAuthActionBtn.textContent = 'Switch Account';
-      if (!elements.custName.value) elements.custName.value = user.name || '';
-      if (!elements.custPhone.value) elements.custPhone.value = user.phone || '';
     } else {
       elements.checkoutAuthStatus.textContent = '👤 Ordering as Guest';
       elements.checkoutAuthBanner?.classList.remove('is-member');
       if (elements.checkoutAuthActionBtn) elements.checkoutAuthActionBtn.textContent = 'Log in to save';
     }
   }
+
+  // Synchronize checkout recipient information based on authentication state
+  renderCheckout();
 
   // History Tab Profile Card
   if (elements.historyMemberName) {
@@ -1236,6 +1317,7 @@ function renderDrawerCartItems() {
 
 function openCartDrawer() {
   updateCartUI();
+  renderCheckout();
   elements.cartDrawer.classList.add('open');
   elements.drawerBackdrop.classList.add('active');
   elements.drawerBackdrop.classList.remove('hidden');
@@ -1262,9 +1344,10 @@ function handleCheckoutSubmit(e) {
     return;
   }
 
-  const customerName = elements.custName.value.trim();
-  const customerPhone = elements.custPhone.value.trim();
-  const deliveryAddress = elements.custAddress.value.trim();
+  const { nameInput, phoneInput, addressInput } = getCheckoutInputs();
+  const customerName = (nameInput ? nameInput.value : (elements.custName ? elements.custName.value : '')).trim();
+  const customerPhone = (phoneInput ? phoneInput.value : (elements.custPhone ? elements.custPhone.value : '')).trim();
+  const deliveryAddress = (addressInput ? addressInput.value : (elements.custAddress ? elements.custAddress.value : '')).trim();
 
   if (customerName.length < 2) {
     showToast('Recipient name must be at least 2 characters.', 'error');
@@ -1413,7 +1496,9 @@ async function finalizeOrderPlacement() {
           state.guestOrderIds.unshift(newOrder.id);
           localStorage.setItem('xmart_guest_orders', JSON.stringify(state.guestOrderIds));
         }
+        localStorage.removeItem('xmart_guest_delivery_info');
       }
+      renderCheckout();
 
       showToast(`Order #${newOrder.id} placed! Mock external courier dispatched.`, 'success');
 

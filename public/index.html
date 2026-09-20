@@ -440,18 +440,18 @@
 
           <form id="checkout-form" class="checkout-form">
             <div class="form-group">
-              <label for="cust-name">Recipient Name *</label>
-              <input type="text" id="cust-name" placeholder="Full name" required minlength="2">
+              <label for="checkout-name">Recipient Name *</label>
+              <input type="text" id="checkout-name" name="customer_name" placeholder="Full name" required minlength="2">
             </div>
 
             <div class="form-group">
-              <label for="cust-phone">Phone Number *</label>
-              <input type="tel" id="cust-phone" placeholder="e.g. 0812345678" required minlength="6">
+              <label for="checkout-phone">Phone Number *</label>
+              <input type="tel" id="checkout-phone" name="customer_phone" placeholder="e.g. 0812345678" required minlength="6">
             </div>
 
             <div class="form-group">
-              <label for="cust-address">Delivery Address *</label>
-              <textarea id="cust-address" rows="2" placeholder="Building, Soi, Road, Bangkok..." required minlength="5"></textarea>
+              <label for="checkout-address">Delivery Address *</label>
+              <textarea id="checkout-address" name="delivery_address" rows="2" placeholder="Building, Soi, Road, Bangkok..." required minlength="5"></textarea>
             </div>
 
             <!-- Selectable Card Tiles for Payment Method -->
