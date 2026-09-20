@@ -104,12 +104,20 @@ router.post('/register', async (req, res) => {
     const cleanPhone = phone.trim();
     const cleanName = name.trim();
 
-    // Check if email already registered
-    const existing = await db.prepare('SELECT id FROM users WHERE email = ?').get(cleanEmail);
-    if (existing) {
+    // Check if email or phone already registered
+    const existingEmail = await db.prepare('SELECT id FROM users WHERE email = ?').get(cleanEmail);
+    if (existingEmail) {
       return res.status(409).json({
         success: false,
         error: 'An account with this email address already exists.'
+      });
+    }
+
+    const existingPhone = await db.prepare('SELECT id FROM users WHERE phone = ?').get(cleanPhone);
+    if (existingPhone) {
+      return res.status(409).json({
+        success: false,
+        error: 'An account with this phone number already exists.'
       });
     }
 

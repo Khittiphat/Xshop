@@ -11,7 +11,8 @@
     "db:seed": "node src/database/seed.js",
     "db:setup": "node src/database/setup.js",
     "db:verify": "node src/database/verify.js",
-    "test": "node --test --test-concurrency=1 test/*.test.js"
+    "test": "node --test --test-concurrency=1 test/*.test.js",
+    "audit": "node scripts/full_audit.mjs"
   },
   "keywords": [
     "ecommerce",

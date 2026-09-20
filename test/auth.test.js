@@ -10,7 +10,7 @@ describe('X Mart Authentication & Session API Endpoints', () => {
   });
 
   const testEmail = `newuser_${Date.now()}@example.com`;
-  const testPhone = '089-987-6543';
+  const testPhone = `089${String(Date.now()).slice(-7)}`;
   const testPassword = 'Password@123';
   let registeredToken = null;
 
