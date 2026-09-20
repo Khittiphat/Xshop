@@ -1821,7 +1821,9 @@ async function exportSalesReportToCsv() {
     }
 
     const csvText = await res.text();
-    const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+    // Ensure Blob is constructed with UTF-8 BOM (\uFEFF) for Excel compatibility
+    const blobContent = csvText.startsWith('\uFEFF') ? csvText : '\uFEFF' + csvText;
+    const blob = new Blob([blobContent], { type: 'text/csv;charset=utf-8;' });
     const downloadUrl = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = downloadUrl;

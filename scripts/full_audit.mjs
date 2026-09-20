@@ -220,7 +220,7 @@ async function runAudit() {
     'Sales Report CSV export with valid headers',
     salesCsvRes.status === 200 &&
       salesCsvRes.headers['content-type'].includes('text/csv') &&
-      salesCsvRes.text.startsWith('Date,Order ID,Category,Items,Revenue')
+      salesCsvRes.text.startsWith('\uFEFFDate,Order ID,Category,Items,Revenue')
   );
 
   // Peak-hours & Cloud auto-scaling recommendation

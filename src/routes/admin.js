@@ -152,7 +152,7 @@ router.get('/sales', async (req, res) => {
 
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="xmart_sales_${startDate}_to_${endDate}.csv"`);
-      return res.status(200).send(csvHeader + csvRows);
+      return res.status(200).send('\uFEFF' + csvHeader + csvRows);
     }
 
     return res.json({
