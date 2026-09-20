@@ -28,10 +28,25 @@
             <span>📊</span>
             <span class="user-status-text">Admin</span>
           </button>
-          <button id="user-mode-btn" class="header-pill-btn" title="Toggle Member Mode" aria-label="Toggle user mode">
-            <span id="user-avatar" class="user-avatar">👤</span>
-            <span id="user-status-text" class="user-status-text">Guest</span>
-          </button>
+          <div class="user-menu-wrapper">
+            <button id="auth-header-btn" class="header-pill-btn" title="Account / Login" aria-label="Account">
+              <span id="user-avatar" class="user-avatar">👤</span>
+              <span id="user-status-text" class="user-status-text">Login</span>
+            </button>
+            <div id="user-dropdown-menu" class="user-dropdown-menu hidden" role="menu">
+              <div class="dropdown-user-info">
+                <strong id="dropdown-user-name">Guest</strong>
+                <span id="dropdown-user-email">Not logged in</span>
+              </div>
+              <div class="dropdown-divider"></div>
+              <button id="dropdown-history-btn" class="dropdown-item" role="menuitem">
+                <span>🧾</span> My Orders
+              </button>
+              <button id="dropdown-logout-btn" class="dropdown-item text-danger" role="menuitem">
+                <span>🚪</span> Log Out
+              </button>
+            </div>
+          </div>
           <button id="header-cart-btn" class="cart-trigger-btn" aria-label="Open Shopping Cart">
             <span class="cart-icon">🛒</span>
             <span id="cart-badge" class="cart-badge hidden">0</span>
@@ -212,17 +227,18 @@
         </div>
       </section>
 
-      <!-- VIEW 3: MEMBER ORDER HISTORY -->
+      <!-- VIEW 3: ORDER HISTORY (STRICT PRIVACY ISOLATED) -->
       <section id="view-history" class="view hidden">
         <div class="page-title-row">
-          <h2>Member Order History</h2>
-          <div class="member-profile-card">
-            <div class="member-avatar">👤</div>
+          <h2 id="history-view-title">Order History</h2>
+          <div class="member-profile-card" id="history-profile-card">
+            <div class="member-avatar" id="history-avatar">👤</div>
             <div class="member-details">
-              <strong id="history-member-name">John Doe</strong>
-              <span id="history-member-email">john.doe@example.com</span>
-              <span class="membership-badge">⭐ X Mart Member</span>
+              <strong id="history-member-name">Local Device Orders</strong>
+              <span id="history-member-email">Orders placed on this device</span>
+              <span class="membership-badge" id="history-member-badge">Guest Session</span>
             </div>
+            <button id="history-auth-action-btn" class="btn btn-sm btn-outline">Log In</button>
           </div>
         </div>
 
@@ -232,9 +248,12 @@
 
         <div id="history-empty" class="empty-state hidden">
           <div class="empty-icon">🧾</div>
-          <h3>No Past Orders Found</h3>
-          <p>You haven't placed any orders with this member account yet.</p>
-          <button class="btn btn-primary" id="history-shop-now-btn">Start Shopping</button>
+          <h3 id="history-empty-title">No Past Orders Found</h3>
+          <p id="history-empty-desc">You haven't placed any orders on this device yet. Log in to access your cloud-synced member history.</p>
+          <div class="empty-actions">
+            <button class="btn btn-primary" id="history-shop-now-btn">Start Shopping</button>
+            <button class="btn btn-secondary hidden" id="history-login-prompt-btn">Log In / Register</button>
+          </div>
         </div>
       </section>
 
@@ -411,12 +430,12 @@
 
         <!-- Checkout Form (Guest or Member) -->
         <div id="checkout-form-section" class="checkout-form-section">
-          <h4 class="section-heading">Delivery Information</h4>
-
-          <!-- User Mode Selector -->
-          <div class="checkout-mode-toggle" role="group" aria-label="Checkout type">
-            <button type="button" id="toggle-guest-mode" class="mode-toggle-btn active">Guest Checkout</button>
-            <button type="button" id="toggle-member-mode" class="mode-toggle-btn">Member (John Doe)</button>
+          <div class="checkout-section-header">
+            <h4 class="section-heading">Delivery Information</h4>
+            <div id="checkout-auth-banner" class="checkout-auth-banner">
+              <span id="checkout-auth-status">👤 Ordering as Guest</span>
+              <button type="button" id="checkout-auth-action-btn" class="link-btn">Log in to save order</button>
+            </div>
           </div>
 
           <form id="checkout-form" class="checkout-form">
@@ -602,6 +621,117 @@
           </div>
         </div>
       </div>
+    <!-- Authentication Modal (Login & Register) -->
+    <div id="auth-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
+      <div class="modal-backdrop" id="auth-modal-backdrop"></div>
+      <div class="modal-card auth-modal-card">
+        <div class="modal-header auth-header">
+          <div class="auth-header-title">
+            <span class="auth-badge">X MART ACCOUNT</span>
+            <h3 id="auth-modal-title">Welcome to X Mart</h3>
+          </div>
+          <button type="button" class="btn-icon" id="close-auth-modal-btn" aria-label="Close Authentication Modal">✕</button>
+        </div>
+
+        <!-- Auth Tabs -->
+        <div class="auth-tabs" role="tablist">
+          <button type="button" class="auth-tab active" id="auth-tab-login" role="tab" aria-selected="true">Log In</button>
+          <button type="button" class="auth-tab" id="auth-tab-register" role="tab" aria-selected="false">Create Account</button>
+        </div>
+
+        <div class="auth-body">
+          <!-- LOGIN PANEL -->
+          <div id="auth-login-panel" class="auth-panel active">
+            <form id="auth-login-form" class="auth-form">
+              <div class="form-group">
+                <label for="login-identifier">Email or Phone Number *</label>
+                <input 
+                  type="text" 
+                  id="login-identifier" 
+                  placeholder="e.g. john.doe@example.com or 0891234567" 
+                  required 
+                  autocomplete="username"
+                />
+              </div>
+              <div class="form-group">
+                <label for="login-password">Password *</label>
+                <input 
+                  type="password" 
+                  id="login-password" 
+                  placeholder="Enter your password" 
+                  required 
+                  autocomplete="current-password"
+                />
+              </div>
+              <button type="submit" id="login-submit-btn" class="btn btn-primary btn-block btn-lg">
+                Log In
+              </button>
+            </form>
+            <div class="auth-footer-prompt">
+              <span>Don't have an account?</span>
+              <button type="button" id="switch-to-register-btn" class="link-btn">Create one now</button>
+            </div>
+          </div>
+
+          <!-- REGISTER PANEL -->
+          <div id="auth-register-panel" class="auth-panel hidden">
+            <form id="auth-register-form" class="auth-form">
+              <div class="form-group">
+                <label for="reg-name">Full Name *</label>
+                <input 
+                  type="text" 
+                  id="reg-name" 
+                  placeholder="e.g. Somchai Sukjai" 
+                  required 
+                  minlength="2"
+                  autocomplete="name"
+                />
+              </div>
+              <div class="form-group">
+                <label for="reg-phone">Phone Number *</label>
+                <input 
+                  type="tel" 
+                  id="reg-phone" 
+                  placeholder="e.g. 0891234567" 
+                  required 
+                  minlength="6"
+                  autocomplete="tel"
+                />
+              </div>
+              <div class="form-group">
+                <label for="reg-email">Email Address *</label>
+                <input 
+                  type="email" 
+                  id="reg-email" 
+                  placeholder="e.g. name@example.com" 
+                  required 
+                  autocomplete="email"
+                />
+              </div>
+              <div class="form-group">
+                <label for="reg-password">Password (min 6 characters) *</label>
+                <input 
+                  type="password" 
+                  id="reg-password" 
+                  placeholder="Choose a password" 
+                  required 
+                  minlength="6"
+                  autocomplete="new-password"
+                />
+              </div>
+              <button type="submit" id="reg-submit-btn" class="btn btn-primary btn-block btn-lg">
+                Create Account
+              </button>
+            </form>
+            <div class="auth-footer-prompt">
+              <span>Already have an account?</span>
+              <button type="button" id="switch-to-login-btn" class="link-btn">Log in here</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Digital Receipt Modal -->
     <div id="receipt-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="receipt-modal-title">
       <div class="modal-backdrop" id="receipt-modal-backdrop"></div>

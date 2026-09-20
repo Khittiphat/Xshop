@@ -13,14 +13,9 @@ const state = {
   cart: JSON.parse(localStorage.getItem('xmart_cart') || '[]'),
   currentOrderId: null,
   trackedOrder: null,
-  userMode: 'guest', // 'guest' | 'member'
-  memberProfile: {
-    id: 3,
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    phone: '+1-555-0144',
-    address: '742 Evergreen Terrace, Apt 4B'
-  }
+  currentUser: JSON.parse(localStorage.getItem('xmart_user') || 'null'),
+  authToken: localStorage.getItem('xmart_token') || null,
+  guestOrderIds: JSON.parse(localStorage.getItem('xmart_guest_orders') || '[]')
 };
 
 // DOM Element References
@@ -31,9 +26,14 @@ const elements = {
   navHistory: document.getElementById('nav-history-btn'),
   navCart: document.getElementById('nav-cart-btn'),
   headerCart: document.getElementById('header-cart-btn'),
-  userModeBtn: document.getElementById('user-mode-btn'),
+  authHeaderBtn: document.getElementById('auth-header-btn'),
   userStatusText: document.getElementById('user-status-text'),
   userAvatar: document.getElementById('user-avatar'),
+  userDropdownMenu: document.getElementById('user-dropdown-menu'),
+  dropdownUserName: document.getElementById('dropdown-user-name'),
+  dropdownUserEmail: document.getElementById('dropdown-user-email'),
+  dropdownHistoryBtn: document.getElementById('dropdown-history-btn'),
+  dropdownLogoutBtn: document.getElementById('dropdown-logout-btn'),
   brandLogo: document.getElementById('brand-logo'),
 
   // Views
@@ -78,13 +78,35 @@ const elements = {
   cartBadge: document.getElementById('cart-badge'),
   navCartBadge: document.getElementById('nav-cart-badge'),
 
-  // Checkout Form
+  // Checkout Form & Delivery Information
   checkoutForm: document.getElementById('checkout-form'),
   custName: document.getElementById('cust-name'),
   custPhone: document.getElementById('cust-phone'),
   custAddress: document.getElementById('cust-address'),
-  toggleGuestMode: document.getElementById('toggle-guest-mode'),
-  toggleMemberMode: document.getElementById('toggle-member-mode'),
+  checkoutAuthBanner: document.getElementById('checkout-auth-banner'),
+  checkoutAuthStatus: document.getElementById('checkout-auth-status'),
+  checkoutAuthActionBtn: document.getElementById('checkout-auth-action-btn'),
+
+  // Authentication Modal
+  authModal: document.getElementById('auth-modal'),
+  authModalBackdrop: document.getElementById('auth-modal-backdrop'),
+  closeAuthModalBtn: document.getElementById('close-auth-modal-btn'),
+  authTabLogin: document.getElementById('auth-tab-login'),
+  authTabRegister: document.getElementById('auth-tab-register'),
+  authLoginPanel: document.getElementById('auth-login-panel'),
+  authRegisterPanel: document.getElementById('auth-register-panel'),
+  authLoginForm: document.getElementById('auth-login-form'),
+  authRegisterForm: document.getElementById('auth-register-form'),
+  loginIdentifier: document.getElementById('login-identifier'),
+  loginPassword: document.getElementById('login-password'),
+  loginSubmitBtn: document.getElementById('login-submit-btn'),
+  regName: document.getElementById('reg-name'),
+  regPhone: document.getElementById('reg-phone'),
+  regEmail: document.getElementById('reg-email'),
+  regPassword: document.getElementById('reg-password'),
+  regSubmitBtn: document.getElementById('reg-submit-btn'),
+  switchToRegisterBtn: document.getElementById('switch-to-register-btn'),
+  switchToLoginBtn: document.getElementById('switch-to-login-btn'),
 
   // Payment Gateway Modal
   paymentModal: document.getElementById('payment-modal'),
@@ -145,12 +167,20 @@ const elements = {
   simDelivered: document.getElementById('sim-delivered'),
   trackGotoCatalogBtn: document.getElementById('track-goto-catalog-btn'),
 
-  // Member History
+  // Order History Elements
+  historyViewTitle: document.getElementById('history-view-title'),
+  historyProfileCard: document.getElementById('history-profile-card'),
+  historyAvatar: document.getElementById('history-avatar'),
   historyOrdersList: document.getElementById('history-orders-list'),
   historyEmpty: document.getElementById('history-empty'),
+  historyEmptyTitle: document.getElementById('history-empty-title'),
+  historyEmptyDesc: document.getElementById('history-empty-desc'),
   historyShopNowBtn: document.getElementById('history-shop-now-btn'),
+  historyLoginPromptBtn: document.getElementById('history-login-prompt-btn'),
   historyMemberName: document.getElementById('history-member-name'),
   historyMemberEmail: document.getElementById('history-member-email'),
+  historyMemberBadge: document.getElementById('history-member-badge'),
+  historyAuthActionBtn: document.getElementById('history-auth-action-btn'),
 
   // Toasts
   toastContainer: document.getElementById('toast-container')
@@ -239,10 +269,39 @@ function initEventListeners() {
     loadProducts();
   });
 
-  // User Mode Toggle (Guest vs John Doe)
-  elements.userModeBtn.addEventListener('click', toggleUserMode);
-  elements.toggleGuestMode.addEventListener('click', () => setUserMode('guest'));
-  elements.toggleMemberMode.addEventListener('click', () => setUserMode('member'));
+  // User Account & Authentication Triggers
+  elements.authHeaderBtn?.addEventListener('click', toggleUserDropdown);
+  elements.dropdownHistoryBtn?.addEventListener('click', () => {
+    closeUserDropdown();
+    switchView('history');
+  });
+  elements.dropdownLogoutBtn?.addEventListener('click', logout);
+  elements.checkoutAuthActionBtn?.addEventListener('click', () => openAuthModal('login'));
+  elements.historyAuthActionBtn?.addEventListener('click', () => {
+    if (state.currentUser) {
+      logout();
+    } else {
+      openAuthModal('login');
+    }
+  });
+  elements.historyLoginPromptBtn?.addEventListener('click', () => openAuthModal('login'));
+
+  // Close user dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!elements.authHeaderBtn?.contains(e.target) && !elements.userDropdownMenu?.contains(e.target)) {
+      closeUserDropdown();
+    }
+  });
+
+  // Auth Modal Listeners
+  elements.closeAuthModalBtn?.addEventListener('click', closeAuthModal);
+  elements.authModalBackdrop?.addEventListener('click', closeAuthModal);
+  elements.authTabLogin?.addEventListener('click', () => switchAuthTab('login'));
+  elements.authTabRegister?.addEventListener('click', () => switchAuthTab('register'));
+  elements.switchToRegisterBtn?.addEventListener('click', () => switchAuthTab('register'));
+  elements.switchToLoginBtn?.addEventListener('click', () => switchAuthTab('login'));
+  elements.authLoginForm?.addEventListener('submit', handleLoginSubmit);
+  elements.authRegisterForm?.addEventListener('submit', handleRegisterSubmit);
 
   // Checkout Form Submit
   elements.checkoutForm.addEventListener('submit', handleCheckoutSubmit);
@@ -313,44 +372,212 @@ function switchView(viewName) {
 }
 
 // =========================================================
-// User Mode (Guest vs Member John Doe)
+// Real Authentication & Session Management
 // =========================================================
-function toggleUserMode() {
-  const nextMode = state.userMode === 'guest' ? 'member' : 'guest';
-  setUserMode(nextMode);
+function updateUserModeUI() {
+  const user = state.currentUser;
+  const isMember = Boolean(user);
+
+  // Header Avatar & Name
+  if (isMember) {
+    const firstName = user.name ? user.name.split(' ')[0] : 'Member';
+    elements.userStatusText.textContent = firstName;
+    elements.userAvatar.textContent = '⭐';
+    if (elements.dropdownUserName) elements.dropdownUserName.textContent = user.name || 'Member';
+    if (elements.dropdownUserEmail) elements.dropdownUserEmail.textContent = user.email || user.phone || '';
+  } else {
+    elements.userStatusText.textContent = 'Login';
+    elements.userAvatar.textContent = '👤';
+    if (elements.dropdownUserName) elements.dropdownUserName.textContent = 'Guest';
+    if (elements.dropdownUserEmail) elements.dropdownUserEmail.textContent = 'Not logged in';
+  }
+
+  // Checkout Delivery Section in Cart Drawer
+  if (elements.checkoutAuthStatus) {
+    if (isMember) {
+      elements.checkoutAuthStatus.textContent = `⭐ Logged in as ${user.name}`;
+      elements.checkoutAuthBanner?.classList.add('is-member');
+      if (elements.checkoutAuthActionBtn) elements.checkoutAuthActionBtn.textContent = 'Switch Account';
+      if (!elements.custName.value) elements.custName.value = user.name || '';
+      if (!elements.custPhone.value) elements.custPhone.value = user.phone || '';
+    } else {
+      elements.checkoutAuthStatus.textContent = '👤 Ordering as Guest';
+      elements.checkoutAuthBanner?.classList.remove('is-member');
+      if (elements.checkoutAuthActionBtn) elements.checkoutAuthActionBtn.textContent = 'Log in to save';
+    }
+  }
+
+  // History Tab Profile Card
+  if (elements.historyMemberName) {
+    if (isMember) {
+      elements.historyMemberName.textContent = user.name || 'Member';
+      elements.historyMemberEmail.textContent = user.email || user.phone || '';
+      if (elements.historyMemberBadge) elements.historyMemberBadge.textContent = '⭐ X Mart Member';
+      if (elements.historyAvatar) elements.historyAvatar.textContent = '⭐';
+      if (elements.historyAuthActionBtn) elements.historyAuthActionBtn.textContent = 'Log Out';
+    } else {
+      elements.historyMemberName.textContent = 'Local Device Orders';
+      elements.historyMemberEmail.textContent = 'Orders placed on this device';
+      if (elements.historyMemberBadge) elements.historyMemberBadge.textContent = 'Guest Session';
+      if (elements.historyAvatar) elements.historyAvatar.textContent = '👤';
+      if (elements.historyAuthActionBtn) elements.historyAuthActionBtn.textContent = 'Log In / Sync';
+    }
+  }
 }
 
-function setUserMode(mode) {
-  state.userMode = mode;
-  updateUserModeUI();
+function openAuthModal(initialTab = 'login') {
+  closeUserDropdown();
+  switchAuthTab(initialTab);
+  elements.authModal?.classList.remove('hidden');
+  elements.authModalBackdrop?.classList.remove('hidden');
+}
 
-  if (mode === 'member') {
-    elements.custName.value = state.memberProfile.name;
-    elements.custPhone.value = state.memberProfile.phone;
-    elements.custAddress.value = state.memberProfile.address;
-    showToast(`Switched to Member: ${state.memberProfile.name}`, 'success');
-  } else {
-    elements.custName.value = '';
-    elements.custPhone.value = '';
-    elements.custAddress.value = '';
-    showToast('Switched to Guest Checkout mode', 'info');
+function closeAuthModal() {
+  elements.authModal?.classList.add('hidden');
+  elements.authModalBackdrop?.classList.add('hidden');
+}
+
+function switchAuthTab(tab) {
+  const isLogin = tab === 'login';
+  elements.authTabLogin?.classList.toggle('active', isLogin);
+  elements.authTabRegister?.classList.toggle('active', !isLogin);
+  elements.authTabLogin?.setAttribute('aria-selected', isLogin ? 'true' : 'false');
+  elements.authTabRegister?.setAttribute('aria-selected', !isLogin ? 'true' : 'false');
+  elements.authLoginPanel?.classList.toggle('active', isLogin);
+  elements.authLoginPanel?.classList.toggle('hidden', !isLogin);
+  elements.authRegisterPanel?.classList.toggle('active', !isLogin);
+  elements.authRegisterPanel?.classList.toggle('hidden', isLogin);
+}
+
+function toggleUserDropdown(e) {
+  e?.stopPropagation();
+  if (!state.currentUser) {
+    openAuthModal('login');
+    return;
   }
+  elements.userDropdownMenu?.classList.toggle('hidden');
+}
+
+function closeUserDropdown() {
+  elements.userDropdownMenu?.classList.add('hidden');
+}
+
+async function handleLoginSubmit(e) {
+  e.preventDefault();
+  const identifier = elements.loginIdentifier.value.trim();
+  const password = elements.loginPassword.value;
+
+  if (!identifier || !password) {
+    showToast('Please enter email/phone and password.', 'error');
+    return;
+  }
+
+  elements.loginSubmitBtn.disabled = true;
+  elements.loginSubmitBtn.textContent = 'Logging in...';
+
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier, password })
+    });
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      state.currentUser = data.user;
+      state.authToken = data.token;
+      localStorage.setItem('xmart_user', JSON.stringify(data.user));
+      localStorage.setItem('xmart_token', data.token);
+
+      updateUserModeUI();
+      closeAuthModal();
+      elements.authLoginForm.reset();
+      showToast(`Welcome back, ${data.user.name}!`, 'success');
+
+      if (state.activeView === 'history') {
+        loadMemberHistory();
+      }
+    } else {
+      showToast(data.error || 'Login failed', 'error');
+    }
+  } catch (err) {
+    console.error('Login error:', err);
+    showToast('Network error during login.', 'error');
+  } finally {
+    elements.loginSubmitBtn.disabled = false;
+    elements.loginSubmitBtn.textContent = 'Log In';
+  }
+}
+
+async function handleRegisterSubmit(e) {
+  e.preventDefault();
+  const name = elements.regName.value.trim();
+  const phone = elements.regPhone.value.trim();
+  const email = elements.regEmail.value.trim();
+  const password = elements.regPassword.value;
+
+  if (!name || !phone || !email || !password) {
+    showToast('Please fill out all registration fields.', 'error');
+    return;
+  }
+
+  elements.regSubmitBtn.disabled = true;
+  elements.regSubmitBtn.textContent = 'Creating account...';
+
+  try {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, phone, email, password })
+    });
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      state.currentUser = data.user;
+      state.authToken = data.token;
+      localStorage.setItem('xmart_user', JSON.stringify(data.user));
+      localStorage.setItem('xmart_token', data.token);
+
+      updateUserModeUI();
+      closeAuthModal();
+      elements.authRegisterForm.reset();
+      showToast(`Account created! Welcome, ${data.user.name}.`, 'success');
+
+      if (state.activeView === 'history') {
+        loadMemberHistory();
+      }
+    } else {
+      showToast(data.error || 'Registration failed', 'error');
+    }
+  } catch (err) {
+    console.error('Register error:', err);
+    showToast('Network error during registration.', 'error');
+  } finally {
+    elements.regSubmitBtn.disabled = false;
+    elements.regSubmitBtn.textContent = 'Create Account';
+  }
+}
+
+async function logout() {
+  closeUserDropdown();
+  if (state.authToken) {
+    fetch('/api/auth/logout', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${state.authToken}` }
+    }).catch(() => {});
+  }
+
+  state.currentUser = null;
+  state.authToken = null;
+  localStorage.removeItem('xmart_user');
+  localStorage.removeItem('xmart_token');
+
+  updateUserModeUI();
+  showToast('Logged out successfully.', 'info');
 
   if (state.activeView === 'history') {
     loadMemberHistory();
   }
-}
-
-function updateUserModeUI() {
-  const isMember = state.userMode === 'member';
-  elements.userStatusText.textContent = isMember ? 'John D.' : 'Guest';
-  elements.userAvatar.textContent = isMember ? '⭐' : '👤';
-
-  elements.toggleGuestMode.classList.toggle('active', !isMember);
-  elements.toggleMemberMode.classList.toggle('active', isMember);
-
-  elements.historyMemberName.textContent = state.memberProfile.name;
-  elements.historyMemberEmail.textContent = state.memberProfile.email;
 }
 
 // =========================================================
@@ -1074,7 +1301,7 @@ async function finalizeOrderPlacement() {
   });
 
   const orderPayload = {
-    user_id: state.userMode === 'member' ? state.memberProfile.id : null,
+    user_id: state.currentUser ? state.currentUser.id : null,
     customer_name: state.pendingCheckout.customerName,
     customer_phone: state.pendingCheckout.customerPhone,
     delivery_address: state.pendingCheckout.deliveryAddress,
@@ -1104,6 +1331,15 @@ async function finalizeOrderPlacement() {
 
       const newOrder = data.data;
       state.currentOrderId = newOrder.id;
+
+      // Strict Order Privacy:
+      // If ordering as guest, store ID in local device storage
+      if (!state.currentUser) {
+        if (!state.guestOrderIds.includes(newOrder.id)) {
+          state.guestOrderIds.unshift(newOrder.id);
+          localStorage.setItem('xmart_guest_orders', JSON.stringify(state.guestOrderIds));
+        }
+      }
 
       showToast(`Order #${newOrder.id} placed! Mock external courier dispatched.`, 'success');
 
@@ -1287,7 +1523,7 @@ async function simulateDriverStatus(newStatus) {
 }
 
 // =========================================================
-// Member Order History View
+// Strict Privacy Order History View (Member & Guest Isolation)
 // =========================================================
 async function loadMemberHistory() {
   elements.historyOrdersList.innerHTML = `
@@ -1295,21 +1531,63 @@ async function loadMemberHistory() {
     <div class="skeleton-card" style="height: 90px;"></div>
   `;
 
-  try {
-    const userId = state.memberProfile.id;
-    const res = await fetch(`/api/orders/user/${userId}`);
-    const data = await res.json();
+  // 1. Authenticated Member Account: Fetch personal cloud orders
+  if (state.currentUser) {
+    try {
+      const userId = state.currentUser.id;
+      const res = await fetch(`/api/orders/user/${userId}`);
+      const data = await res.json();
 
-    if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+      if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+        elements.historyEmpty.classList.add('hidden');
+        renderHistoryList(data.data);
+      } else {
+        elements.historyOrdersList.innerHTML = '';
+        elements.historyEmpty.classList.remove('hidden');
+        if (elements.historyEmptyTitle) elements.historyEmptyTitle.textContent = 'No Past Orders Found';
+        if (elements.historyEmptyDesc) elements.historyEmptyDesc.textContent = 'You haven\'t placed any orders with this member account yet.';
+        elements.historyLoginPromptBtn?.classList.add('hidden');
+      }
+    } catch (err) {
+      console.error('Failed to load history:', err);
+      elements.historyOrdersList.innerHTML = `<p class="help-text">Failed to load order history.</p>`;
+    }
+    return;
+  }
+
+  // 2. Guest Customer: Strictly isolated to orders placed on THIS device
+  const guestIds = Array.isArray(state.guestOrderIds) ? state.guestOrderIds : [];
+  if (guestIds.length === 0) {
+    elements.historyOrdersList.innerHTML = '';
+    elements.historyEmpty.classList.remove('hidden');
+    if (elements.historyEmptyTitle) elements.historyEmptyTitle.textContent = 'No Orders On This Device';
+    if (elements.historyEmptyDesc) elements.historyEmptyDesc.textContent = 'You haven\'t placed any orders on this device yet. Log in or create an account to view and sync your orders across all devices.';
+    elements.historyLoginPromptBtn?.classList.remove('hidden');
+    return;
+  }
+
+  try {
+    const fetchPromises = guestIds.map(id =>
+      fetch(`/api/orders/${id}`)
+        .then(r => r.ok ? r.json() : null)
+        .catch(() => null)
+    );
+    const results = await Promise.all(fetchPromises);
+    const validOrders = results
+      .filter(r => r && r.success && r.data)
+      .map(r => r.data);
+
+    if (validOrders.length > 0) {
       elements.historyEmpty.classList.add('hidden');
-      renderHistoryList(data.data);
+      renderHistoryList(validOrders);
     } else {
       elements.historyOrdersList.innerHTML = '';
       elements.historyEmpty.classList.remove('hidden');
+      elements.historyLoginPromptBtn?.classList.remove('hidden');
     }
   } catch (err) {
-    console.error('Failed to load history:', err);
-    elements.historyOrdersList.innerHTML = `<p class="help-text">Failed to load order history.</p>`;
+    console.error('Failed to load guest orders:', err);
+    elements.historyOrdersList.innerHTML = `<p class="help-text">Failed to load local device orders.</p>`;
   }
 }
 
