@@ -269,8 +269,16 @@ function initEventListeners() {
     loadProducts();
   });
 
-  // User Account & Authentication Triggers
-  elements.authHeaderBtn?.addEventListener('click', toggleUserDropdown);
+  // User Account & Authentication Triggers (Direct Listeners + Event Delegation)
+  elements.authHeaderBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!state.currentUser) {
+      openAuthModal('login');
+    } else {
+      toggleUserDropdown(e);
+    }
+  });
+
   elements.dropdownHistoryBtn?.addEventListener('click', () => {
     closeUserDropdown();
     switchView('history');
@@ -286,8 +294,38 @@ function initEventListeners() {
   });
   elements.historyLoginPromptBtn?.addEventListener('click', () => openAuthModal('login'));
 
-  // Close user dropdown when clicking outside
+  // Global Event Delegation for dynamically rendered login buttons and links across the app
   document.addEventListener('click', (e) => {
+    const loginTrigger = e.target.closest(
+      '#auth-header-btn, #checkout-auth-action-btn, #history-auth-action-btn, #history-login-prompt-btn, .open-login-btn, [data-action="open-login"], [data-action="login"]'
+    );
+
+    if (loginTrigger) {
+      if (loginTrigger.id === 'auth-header-btn') {
+        if (!state.currentUser) {
+          e.preventDefault();
+          e.stopPropagation();
+          openAuthModal('login');
+        }
+        return;
+      }
+
+      if (loginTrigger.id === 'history-auth-action-btn') {
+        if (state.currentUser) {
+          logout();
+        } else {
+          e.preventDefault();
+          openAuthModal('login');
+        }
+        return;
+      }
+
+      e.preventDefault();
+      openAuthModal('login');
+      return;
+    }
+
+    // Close user dropdown when clicking outside
     if (!elements.authHeaderBtn?.contains(e.target) && !elements.userDropdownMenu?.contains(e.target)) {
       closeUserDropdown();
     }
@@ -428,14 +466,35 @@ function updateUserModeUI() {
 function openAuthModal(initialTab = 'login') {
   closeUserDropdown();
   switchAuthTab(initialTab);
-  elements.authModal?.classList.remove('hidden');
-  elements.authModalBackdrop?.classList.remove('hidden');
+  const modal = elements.authModal || document.getElementById('auth-modal');
+  const backdrop = elements.authModalBackdrop || document.getElementById('auth-modal-backdrop');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+  }
+  if (backdrop) {
+    backdrop.classList.remove('hidden');
+    backdrop.style.display = 'block';
+  }
 }
 
 function closeAuthModal() {
-  elements.authModal?.classList.add('hidden');
-  elements.authModalBackdrop?.classList.add('hidden');
+  const modal = elements.authModal || document.getElementById('auth-modal');
+  const backdrop = elements.authModalBackdrop || document.getElementById('auth-modal-backdrop');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+  }
+  if (backdrop) {
+    backdrop.classList.add('hidden');
+    backdrop.style.display = 'none';
+  }
 }
+
+// Expose globally for inline onclick handlers
+window.openAuthModal = openAuthModal;
+window.showAuthModal = openAuthModal;
+window.closeAuthModal = closeAuthModal;
 
 function switchAuthTab(tab) {
   const isLogin = tab === 'login';

@@ -2872,7 +2872,43 @@ html, body {
   color: var(--danger);
 }
 
-/* Auth Modal */
+/* =========================================================
+   Modal Overlay & High-Z-Index System (Auth & Receipts)
+   ========================================================= */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+.modal-overlay.hidden {
+  display: none !important;
+}
+
+.modal-overlay .modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 9998;
+}
+
+#auth-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+}
+
+#auth-modal.hidden {
+  display: none !important;
+}
+
+/* Auth Modal Card */
 .auth-modal-card {
   position: fixed;
   top: 50%;
@@ -2883,7 +2919,7 @@ html, body {
   background: var(--surface);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-drawer);
-  z-index: 1502;
+  z-index: 10000;
   overflow: hidden;
   animation: modalScaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }

@@ -252,7 +252,7 @@
           <p id="history-empty-desc">You haven't placed any orders on this device yet. Log in to access your cloud-synced member history.</p>
           <div class="empty-actions">
             <button class="btn btn-primary" id="history-shop-now-btn">Start Shopping</button>
-            <button class="btn btn-secondary hidden" id="history-login-prompt-btn">Log In / Register</button>
+            <button class="btn btn-secondary hidden" id="history-login-prompt-btn" onclick="openAuthModal('login')">Log In / Register</button>
           </div>
         </div>
       </section>
@@ -434,7 +434,7 @@
             <h4 class="section-heading">Delivery Information</h4>
             <div id="checkout-auth-banner" class="checkout-auth-banner">
               <span id="checkout-auth-status">👤 Ordering as Guest</span>
-              <button type="button" id="checkout-auth-action-btn" class="link-btn">Log in to save order</button>
+              <button type="button" id="checkout-auth-action-btn" class="link-btn" onclick="openAuthModal('login')">Log in to save order</button>
             </div>
           </div>
 
@@ -621,6 +621,8 @@
           </div>
         </div>
       </div>
+    </div>
+
     <!-- Authentication Modal (Login & Register) -->
     <div id="auth-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
       <div class="modal-backdrop" id="auth-modal-backdrop"></div>
